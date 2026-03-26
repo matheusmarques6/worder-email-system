@@ -117,27 +117,6 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
     }
   }, [storeId])
 
-  const handleFileDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      const droppedFile = e.dataTransfer.files[0]
-      if (droppedFile && droppedFile.name.endsWith(".csv")) {
-        parseFile(droppedFile)
-      }
-    },
-    []
-  )
-
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = e.target.files?.[0]
-      if (selectedFile) {
-        parseFile(selectedFile)
-      }
-    },
-    []
-  )
-
   function parseFile(csvFile: File) {
     setFile(csvFile)
     Papa.parse<string[]>(csvFile, {
@@ -177,6 +156,21 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
         }
       },
     })
+  }
+
+  function handleFileDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    const droppedFile = e.dataTransfer.files[0]
+    if (droppedFile && droppedFile.name.endsWith(".csv")) {
+      parseFile(droppedFile)
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      parseFile(selectedFile)
+    }
   }
 
   const hasEmailMapping = Object.values(columnMapping).includes("email")

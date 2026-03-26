@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const customers = await syncCustomers(store);
-    const products = await syncProducts(store);
-    const orders = await syncOrders(store);
+    const customers = await syncCustomers(store.shopify_domain, store.shopify_access_token, store.id);
+    const products = await syncProducts(store.shopify_domain, store.shopify_access_token, store.id);
+    const orders = await syncOrders(store.shopify_domain, store.shopify_access_token, store.id);
 
     return NextResponse.json({
       success: true,

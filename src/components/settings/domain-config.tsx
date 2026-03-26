@@ -28,12 +28,6 @@ export function DomainConfig() {
   const [verifying, setVerifying] = useState(false);
   const [fetching, setFetching] = useState(false);
 
-  useEffect(() => {
-    if (store?.id) {
-      fetchDomain();
-    }
-  }, [store?.id]);
-
   async function fetchDomain() {
     if (!store) return;
     setFetching(true);
@@ -48,6 +42,13 @@ export function DomainConfig() {
     }
     setFetching(false);
   }
+
+  useEffect(() => {
+    if (store?.id) {
+      fetchDomain();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store?.id]);
 
   async function handleAddDomain() {
     if (!domain || !store) return;

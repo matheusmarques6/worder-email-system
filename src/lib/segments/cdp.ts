@@ -1,4 +1,6 @@
-import { supabaseAdmin } from "@/lib/supabase/admin"
+import { createAdminClient } from "@/lib/supabase/admin"
+
+const supabaseAdmin = createAdminClient()
 
 interface OrderData {
   total: number

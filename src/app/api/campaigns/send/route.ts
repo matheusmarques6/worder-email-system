@@ -80,15 +80,12 @@ export async function POST(request: NextRequest) {
   // Send emails
   let totalSent = 0;
   for (const contact of contacts) {
-    const result = await sendCampaignEmail({
-      contact: contact as Contact,
-      store: store as Store,
-      template: template as Template,
+    const result = await sendCampaignEmail(
+      contact as Contact,
+      template as Template,
+      store as Store,
       campaignId,
-      subject: campaign.subject,
-      senderName: campaign.sender_name,
-      senderEmail: campaign.sender_email,
-    });
+    );
 
     if (result.success) totalSent++;
   }

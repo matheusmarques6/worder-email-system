@@ -46,15 +46,14 @@ export async function processNode(
           .single();
 
         if (template && contact && store) {
-          await sendCampaignEmail({
-            contact: contact as Contact,
-            store: store as Store,
-            template: template as Template,
-            campaignId: "",
-            subject: (nodeConfig.subject as string) || template.subject || "",
-            senderName: (nodeConfig.sender_name as string) || store.name,
-            senderEmail: (nodeConfig.sender_email as string) || "noreply@convertfy.com",
-          });
+          await sendCampaignEmail(
+            contact as Contact,
+            template as Template,
+            store as Store,
+            undefined,
+            execution.flow_id,
+            execution.id,
+          );
 
           await supabase.rpc("increment_flow_emails", {
             p_flow_id: execution.flow_id,

@@ -1,4 +1,6 @@
-import { supabaseAdmin } from "@/lib/supabase/admin"
+import { createAdminClient } from "@/lib/supabase/admin"
+
+const supabaseAdmin = createAdminClient()
 import { buildSupabaseQuery, applyProfileFilters } from "@/lib/segments/query-builder"
 import type { EventFilter } from "@/lib/segments/query-builder"
 import type { RuleGroupType } from "react-querybuilder"

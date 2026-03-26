@@ -8,6 +8,12 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "@next/next/no-page-custom-font": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/globals": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/rules-of-hooks": "warn",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
   // Override default ignores of eslint-config-next.

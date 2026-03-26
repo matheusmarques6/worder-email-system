@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase/admin"
+import { createAdminClient } from "@/lib/supabase/admin"
+
+const supabaseAdmin = createAdminClient()
 import { z } from "zod"
 
 const submitSchema = z.object({

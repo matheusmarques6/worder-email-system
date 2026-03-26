@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useStore } from "@/hooks/use-store"
 import { Palette } from "lucide-react"
@@ -43,22 +43,20 @@ export default function FormBuilder({ config, onChange, formType }: FormBuilderP
   const { store } = useStore()
   const [lists, setLists] = useState<ListOption[]>([])
 
-  const fetchLists = useCallback(async () => {
+  useEffect(() => {
     if (!store) return
     const supabase = createClient()
-    const { data } = await supabase
+    supabase
       .from("lists")
       .select("id, name")
       .eq("store_id", store.id)
       .order("name")
-    if (data) {
-      setLists(data as ListOption[])
-    }
+      .then(({ data }) => {
+        if (data) {
+          setLists(data as ListOption[])
+        }
+      })
   }, [store])
-
-  useEffect(() => {
-    fetchLists()
-  }, [fetchLists])
 
   const updateConfig = (partial: Partial<FormConfig>) => {
     onChange({ ...config, ...partial })

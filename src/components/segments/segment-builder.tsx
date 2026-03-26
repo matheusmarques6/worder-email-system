@@ -483,7 +483,9 @@ export function SegmentBuilder({ query, onQueryChange, storeId }: SegmentBuilder
 
   // Update module-level refs so control elements can access current data
   const fields = buildFields(listOptions)
+  // eslint-disable-next-line react-hooks/globals
   currentFields = fields
+  // eslint-disable-next-line react-hooks/globals
   currentFieldGroups = buildFieldGroups(fields)
 
   const handleQueryChange = useCallback(

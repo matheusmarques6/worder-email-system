@@ -31,7 +31,7 @@ export async function sendCampaignEmail(
       flow_execution_id: flowExecutionId || null,
       template_id: template.id,
       subject: template.subject || "",
-      status: "sent",
+      status: "queued",
       sent_at: new Date().toISOString(),
     })
     .select()

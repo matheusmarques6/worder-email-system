@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
+import welcomeDesign from "@/lib/email/templates/welcome.json";
+import abandonedCartDesign from "@/lib/email/templates/abandoned-cart.json";
+import orderConfirmDesign from "@/lib/email/templates/order-confirm.json";
+import postPurchaseDesign from "@/lib/email/templates/post-purchase.json";
+import newsletterDesign from "@/lib/email/templates/newsletter.json";
+
 const categoryOptions = [
   { value: "e-commerce", label: "E-commerce" },
   { value: "welcome", label: "Welcome" },
@@ -20,11 +26,11 @@ const categoryOptions = [
 ];
 
 const prebuiltTemplates = [
-  { key: "welcome", name: "Boas-vindas", category: "welcome" },
-  { key: "abandoned-cart", name: "Carrinho Abandonado", category: "abandono" },
-  { key: "order-confirm", name: "Confirmação de Pedido", category: "pos-compra" },
-  { key: "post-purchase", name: "Pós-compra", category: "pos-compra" },
-  { key: "newsletter", name: "Newsletter", category: "newsletter" },
+  { key: "welcome", name: "Boas-vindas", category: "welcome", design: welcomeDesign },
+  { key: "abandoned-cart", name: "Carrinho Abandonado", category: "abandono", design: abandonedCartDesign },
+  { key: "order-confirm", name: "Confirmação de Pedido", category: "pos-compra", design: orderConfirmDesign },
+  { key: "post-purchase", name: "Pós-compra", category: "pos-compra", design: postPurchaseDesign },
+  { key: "newsletter", name: "Newsletter", category: "newsletter", design: newsletterDesign },
 ];
 
 export default function NewTemplatePage() {
@@ -33,7 +39,10 @@ export default function NewTemplatePage() {
   const [category, setCategory] = useState("custom");
   const [loading, setLoading] = useState(false);
 
-  async function createTemplate(designJson?: Record<string, unknown>) {
+  async function createTemplate(
+    designJson?: Record<string, unknown>,
+    overrideCategory?: string
+  ) {
     if (!name.trim()) {
       toast.error("Digite um nome para o template");
       return;
@@ -41,8 +50,13 @@ export default function NewTemplatePage() {
 
     setLoading(true);
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data: store } = await supabase
       .from("stores")
@@ -61,7 +75,7 @@ export default function NewTemplatePage() {
       .insert({
         store_id: store.id,
         name: name.trim(),
-        category,
+        category: overrideCategory || category,
         design_json: designJson || null,
         is_prebuilt: false,
       })
@@ -139,10 +153,12 @@ export default function NewTemplatePage() {
           {prebuiltTemplates.map((pt) => (
             <button
               key={pt.key}
-              onClick={() => {
-                setCategory(pt.category);
-                createTemplate();
-              }}
+              onClick={() =>
+                createTemplate(
+                  pt.design as Record<string, unknown>,
+                  pt.category
+                )
+              }
               disabled={loading}
               className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-8 shadow-sm transition-colors hover:border-brand-500 hover:bg-brand-50"
             >

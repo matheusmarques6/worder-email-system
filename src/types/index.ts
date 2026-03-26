@@ -119,6 +119,7 @@ export interface Campaign {
   total_clicked: number;
   total_bounced: number;
   total_unsubscribed: number;
+  stats: Record<string, unknown> | null;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -162,7 +163,7 @@ export interface EmailSend {
   template_id: string | null;
   resend_message_id: string | null;
   subject: string;
-  status: "sent" | "delivered" | "bounced" | "failed";
+  status: "queued" | "sent" | "delivered" | "bounced" | "failed";
   sent_at: string;
   delivered_at: string | null;
   opened_at: string | null;

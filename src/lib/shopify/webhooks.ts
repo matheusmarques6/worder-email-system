@@ -1,4 +1,4 @@
-import { SHOPIFY_API_VERSION } from "./oauth";
+import { SHOPIFY_API_VERSION } from "@/lib/shopify/oauth";
 
 const WEBHOOK_TOPICS = [
   "orders/create",

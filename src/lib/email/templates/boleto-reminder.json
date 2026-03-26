@@ -1,0 +1,338 @@
+{
+  "counters": {
+    "u_row": 4,
+    "u_column": 4,
+    "u_content_text": 3,
+    "u_content_button": 1,
+    "u_content_image": 1
+  },
+  "body": {
+    "id": "boleto_body",
+    "rows": [
+      {
+        "id": "bol_row_1",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "bol_col_1",
+            "contents": [
+              {
+                "id": "bol_img_1",
+                "type": "image",
+                "values": {
+                  "containerPadding": "20px 10px",
+                  "anchor": "",
+                  "src": {
+                    "url": "https://via.placeholder.com/180x50/F97316/FFFFFF?text=Logo",
+                    "width": 180,
+                    "height": 50
+                  },
+                  "textAlign": "center",
+                  "altText": "{{store_name}}",
+                  "action": {
+                    "name": "web",
+                    "values": {
+                      "href": "{{store_url}}",
+                      "target": "_blank"
+                    }
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "_meta": {
+                    "htmlID": "u_content_image_1",
+                    "htmlClassNames": "u_content_image"
+                  }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#F97316",
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_1",
+                "htmlClassNames": "u_column"
+              }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "#F97316",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_1",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
+      },
+      {
+        "id": "bol_row_2",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "bol_col_2",
+            "contents": [
+              {
+                "id": "bol_txt_1",
+                "type": "text",
+                "values": {
+                  "containerPadding": "30px 30px 10px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "140%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<h1 style=\"font-size:24px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Seu boleto vence em breve!</h1>",
+                  "_meta": {
+                    "htmlID": "u_content_text_1",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "bol_txt_2",
+                "type": "text",
+                "values": {
+                  "containerPadding": "10px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;\">Olá {{first_name}}, este é um lembrete sobre o boleto do seu pedido.</p><div style=\"font-size:14px;color:#333333;font-family:'DM Sans',Arial,sans-serif;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:16px;margin:12px auto;\"><p style=\"margin-bottom:4px;\">Pedido: <strong>{{order_number}}</strong></p><p style=\"font-weight:600;font-size:18px;color:#1A1D21;\">Valor: {{order_total}}</p></div><p style=\"font-size:14px;color:#D97706;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Pague antes do vencimento para garantir seu pedido!</p>",
+                  "_meta": {
+                    "htmlID": "u_content_text_2",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "bol_btn_1",
+                "type": "button",
+                "values": {
+                  "containerPadding": "20px 30px 30px",
+                  "anchor": "",
+                  "href": {
+                    "name": "web",
+                    "values": {
+                      "href": "{{order_tracking_url}}",
+                      "target": "_blank"
+                    }
+                  },
+                  "buttonColors": {
+                    "color": "#FFFFFF",
+                    "backgroundColor": "#F97316",
+                    "hoverColor": "#FFFFFF",
+                    "hoverBackgroundColor": "#EA580C"
+                  },
+                  "size": {
+                    "autoWidth": false,
+                    "width": "50%"
+                  },
+                  "textAlign": "center",
+                  "lineHeight": "120%",
+                  "padding": "14px 28px",
+                  "border": {},
+                  "borderRadius": "8px",
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<span style=\"font-size:14px;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Ver Boleto</span>",
+                  "calculatedWidth": 285,
+                  "calculatedHeight": 44,
+                  "_meta": {
+                    "htmlID": "u_content_button_1",
+                    "htmlClassNames": "u_content_button"
+                  }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#FFFFFF",
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_2",
+                "htmlClassNames": "u_column"
+              }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_2",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
+      },
+      {
+        "id": "bol_row_3",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "bol_col_3",
+            "contents": [
+              {
+                "id": "bol_txt_3",
+                "type": "text",
+                "values": {
+                  "containerPadding": "20px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<p style=\"font-size:12px;color:#999999;font-family:'DM Sans',Arial,sans-serif;\">&copy; {{store_name}} | <a href=\"{{unsubscribe_url}}\" style=\"color:#F97316;\">Descadastrar</a></p>",
+                  "_meta": {
+                    "htmlID": "u_content_text_3",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#F5F5F5",
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_3",
+                "htmlClassNames": "u_column"
+              }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_3",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
+      }
+    ],
+    "headers": [],
+    "footers": [],
+    "values": {
+      "popupPosition": "center",
+      "popupWidth": "600px",
+      "popupHeight": "auto",
+      "borderRadius": "10px",
+      "contentAlign": "center",
+      "contentVerticalAlign": "center",
+      "contentWidth": "600px",
+      "fontFamily": {
+        "label": "DM Sans",
+        "value": "'DM Sans',Arial,sans-serif"
+      },
+      "textColor": "#1A1D21",
+      "popupBackgroundColor": "#FFFFFF",
+      "popupBackgroundImage": {
+        "url": "",
+        "fullWidth": true,
+        "repeat": "no-repeat",
+        "size": "cover",
+        "position": "center"
+      },
+      "popupOverlay_backgroundColor": "rgba(0, 0, 0, 0.1)",
+      "popupCloseButton_position": "top-right",
+      "popupCloseButton_backgroundColor": "#DDDDDD",
+      "popupCloseButton_iconColor": "#000000",
+      "popupCloseButton_borderRadius": "0px",
+      "popupCloseButton_margin": "0px",
+      "popupCloseButton_action": {
+        "name": "close_popup",
+        "attrs": {
+          "onClick": "document.querySelector('.u-teleporter').remove()"
+        }
+      },
+      "backgroundColor": "#F5F5F5",
+      "preheaderText": "Lembrete: seu boleto do pedido {{order_number}} vence em breve!",
+      "linkStyle": {
+        "body": true,
+        "linkColor": "#F97316",
+        "linkHoverColor": "#EA580C",
+        "linkUnderline": true,
+        "linkHoverUnderline": true
+      },
+      "_meta": {
+        "htmlID": "u_body",
+        "htmlClassNames": "u_body"
+      }
+    }
+  },
+  "schemaVersion": 16
+}

@@ -1,128 +1,106 @@
-import { processConditionalBlocks } from "./conditional-content"
-
-interface MergeData {
-  contact: {
-    first_name?: string | null
-    last_name?: string | null
-    email?: string
-    phone?: string | null
-    created_at?: string
-    total_orders?: number
-    total_spent?: number
-    gender?: string | null
-  }
-  store: {
-    name?: string
-    url?: string
-  }
-  order?: {
-    order_number?: string
-    order_total?: string
-    tracking_url?: string
-  }
-  cart?: {
-    items?: string
-    total?: string
-    url?: string
-  }
-  product?: {
-    name?: string
-    image?: string
-    price?: string
-    url?: string
-  }
-  recommended_products_html?: string
-  discount_code?: string
+/**
+ * Render merge tags in HTML content
+ * Supports {{tag}} and {{tag|fallback}} syntax
+ */
+export function renderMergeTags(
+  html: string,
+  data: Record<string, string>
+): string {
+  return html.replace(
+    /\{\{(\w+)(?:\|([^}]*))?\}\}/g,
+    (_match, tag: string, fallback?: string) => {
+      return data[tag] || fallback || "";
+    }
+  );
 }
 
 /**
- * Prepare email HTML by replacing merge tags and processing conditional blocks
+ * Rewrite all <a href="..."> URLs for click tracking
+ * Skips mailto: and # links
+ */
+export function rewriteUrlsForTracking(
+  html: string,
+  emailSendId: string,
+  baseUrl: string
+): string {
+  return html.replace(
+    /(<a\s[^>]*href=["'])([^"']+)(["'][^>]*>)/gi,
+    (_match, prefix: string, url: string, suffix: string) => {
+      if (
+        url.startsWith("mailto:") ||
+        url.startsWith("#") ||
+        url.startsWith("{{")
+      ) {
+        return `${prefix}${url}${suffix}`;
+      }
+      const trackUrl = `${baseUrl}/api/t/c/${emailSendId}?url=${encodeURIComponent(url)}`;
+      return `${prefix}${trackUrl}${suffix}`;
+    }
+  );
+}
+
+/**
+ * Inject a 1x1 transparent pixel for open tracking
+ */
+export function injectOpenPixel(
+  html: string,
+  emailSendId: string,
+  baseUrl: string
+): string {
+  const pixel = `<img src="${baseUrl}/api/t/o/${emailSendId}" width="1" height="1" style="display:none" alt="" />`;
+  if (html.includes("</body>")) {
+    return html.replace("</body>", `${pixel}</body>`);
+  }
+  return html + pixel;
+}
+
+/**
+ * Add unsubscribe link if not already present
+ */
+export function addUnsubscribeLink(
+  html: string,
+  emailSendId: string,
+  baseUrl: string
+): string {
+  if (html.toLowerCase().includes("unsubscribe")) {
+    return html;
+  }
+  const link = `<div style="text-align:center;padding:20px;font-size:12px;color:#999;"><a href="${baseUrl}/api/unsubscribe/${emailSendId}" style="color:#999;text-decoration:underline;">Descadastrar</a></div>`;
+  if (html.includes("</body>")) {
+    return html.replace("</body>", `${link}</body>`);
+  }
+  return html + link;
+}
+
+/**
+ * Full pipeline: merge tags → tracking URLs → open pixel → unsubscribe
  */
 export function prepareEmailHtml(
   html: string,
-  mergeData: MergeData,
-  emailSendId?: string
+  contact: { email: string; first_name?: string | null; last_name?: string | null; phone?: string | null },
+  store: { name: string; shopify_domain?: string | null },
+  emailSendId: string,
+  eventData?: Record<string, string>
 ): string {
-  let result = html
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  // 1. Process conditional blocks first
-  result = processConditionalBlocks(
-    result,
-    mergeData.contact,
-    mergeData.store as Record<string, unknown>
-  )
+  const data: Record<string, string> = {
+    email: contact.email,
+    first_name: contact.first_name || "",
+    last_name: contact.last_name || "",
+    phone: contact.phone || "",
+    store_name: store.name,
+    store_url: store.shopify_domain
+      ? `https://${store.shopify_domain}`
+      : "",
+    unsubscribe_url: `${baseUrl}/api/unsubscribe/${emailSendId}`,
+    ...eventData,
+  };
 
-  // 2. Replace profile merge tags
-  result = result.replace(/\{\{first_name\}\}/g, mergeData.contact.first_name ?? "")
-  result = result.replace(/\{\{last_name\}\}/g, mergeData.contact.last_name ?? "")
-  result = result.replace(/\{\{email\}\}/g, mergeData.contact.email ?? "")
-  result = result.replace(/\{\{phone\}\}/g, mergeData.contact.phone ?? "")
+  let result = renderMergeTags(html, data);
+  result = rewriteUrlsForTracking(result, emailSendId, baseUrl);
+  result = injectOpenPixel(result, emailSendId, baseUrl);
+  result = addUnsubscribeLink(result, emailSendId, baseUrl);
 
-  // 3. Replace store merge tags
-  result = result.replace(/\{\{store_name\}\}/g, mergeData.store.name ?? "")
-  result = result.replace(/\{\{store_url\}\}/g, mergeData.store.url ?? "")
-
-  // 4. Replace order merge tags
-  if (mergeData.order) {
-    result = result.replace(/\{\{order_number\}\}/g, mergeData.order.order_number ?? "")
-    result = result.replace(/\{\{order_total\}\}/g, mergeData.order.order_total ?? "")
-    result = result.replace(/\{\{order_tracking_url\}\}/g, mergeData.order.tracking_url ?? "")
-  }
-
-  // 5. Replace cart merge tags
-  if (mergeData.cart) {
-    result = result.replace(/\{\{cart_items\}\}/g, mergeData.cart.items ?? "")
-    result = result.replace(/\{\{cart_total\}\}/g, mergeData.cart.total ?? "")
-    result = result.replace(/\{\{cart_url\}\}/g, mergeData.cart.url ?? "")
-  }
-
-  // 6. Replace product merge tags
-  if (mergeData.product) {
-    result = result.replace(/\{\{product_name\}\}/g, mergeData.product.name ?? "")
-    result = result.replace(/\{\{product_image\}\}/g, mergeData.product.image ?? "")
-    result = result.replace(/\{\{product_price\}\}/g, mergeData.product.price ?? "")
-    result = result.replace(/\{\{product_url\}\}/g, mergeData.product.url ?? "")
-  }
-
-  // 7. Replace recommended products
-  if (mergeData.recommended_products_html) {
-    result = result.replace(
-      /\{\{recommended_products\}\}/g,
-      mergeData.recommended_products_html
-    )
-  }
-
-  // 8. Replace discount code
-  if (mergeData.discount_code) {
-    result = result.replace(/\{\{discount_code\}\}/g, mergeData.discount_code)
-  }
-
-  // 9. Inject tracking pixel if emailSendId provided
-  if (emailSendId) {
-    const pixelUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/t/o/${emailSendId}`
-    const pixel = `<img src="${pixelUrl}" width="1" height="1" alt="" style="display:none;" />`
-    result = result.replace("</body>", `${pixel}</body>`)
-  }
-
-  // 10. Clean up any remaining unreplaced merge tags
-  result = result.replace(/\{\{[a-z_]+\}\}/g, "")
-
-  return result
-}
-
-/**
- * Replace merge tags in subject line
- */
-export function prepareSubject(subject: string, mergeData: MergeData): string {
-  let result = subject
-  result = result.replace(/\{\{first_name\}\}/g, mergeData.contact.first_name ?? "")
-  result = result.replace(/\{\{last_name\}\}/g, mergeData.contact.last_name ?? "")
-  result = result.replace(/\{\{store_name\}\}/g, mergeData.store.name ?? "")
-  if (mergeData.discount_code) {
-    result = result.replace(/\{\{discount_code\}\}/g, mergeData.discount_code)
-  }
-  if (mergeData.order) {
-    result = result.replace(/\{\{order_number\}\}/g, mergeData.order.order_number ?? "")
-  }
-  return result
+  return result;
 }

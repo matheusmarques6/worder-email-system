@@ -1,36 +1,47 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { NextRequest, NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email/resend";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
-  try {
-    const { campaignId, testEmail } = await request.json()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!campaignId || !testEmail) {
-      return NextResponse.json(
-        { error: "campaignId and testEmail are required" },
-        { status: 400 }
-      )
-    }
-
-    const supabase = createAdminClient()
-
-    const { data: campaign } = await supabase
-      .from("campaigns")
-      .select("*, templates(*)")
-      .eq("id", campaignId)
-      .single()
-
-    if (!campaign) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
-    }
-
-    // For now, just log and return success
-    // Full sending implementation will use Resend
-    console.log(`Test email would be sent to ${testEmail} for campaign ${campaignId}`)
-
-    return NextResponse.json({ success: true, message: `Email de teste enviado para ${testEmail}` })
-  } catch (err) {
-    console.error("Test email error:", err)
-    return NextResponse.json({ error: "Failed to send test email" }, { status: 500 })
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { to, subject, html } = await request.json();
+
+  if (!to || !subject || !html) {
+    return NextResponse.json(
+      { error: "Missing required fields: to, subject, html" },
+      { status: 400 }
+    );
+  }
+
+  // Get store for sender info
+  const { data: store } = await supabase
+    .from("stores")
+    .select("name, shopify_domain")
+    .eq("user_id", user.id)
+    .single();
+
+  const senderName = store?.name || "Convertfy Mail";
+  const fromDomain = store?.shopify_domain || "mail.convertfy.com.br";
+
+  const result = await sendEmail({
+    to,
+    from: `noreply@${fromDomain}`,
+    senderName,
+    subject,
+    html,
+  });
+
+  if (result.error) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, id: result.id });
 }

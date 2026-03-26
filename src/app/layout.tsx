@@ -1,24 +1,22 @@
-import type { Metadata } from "next"
-import { Toaster } from "@/components/ui/toaster"
-import "./globals.css"
+import type { Metadata } from "next";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Convertfy Mail",
-  description: "Plataforma de email marketing para e-commerce",
-}
+  description:
+    "Plataforma de email marketing e WhatsApp para e-commerce Shopify",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full antialiased">
+    <html lang="pt-BR" className="h-full">
       <head>
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
@@ -29,10 +27,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full font-sans antialiased">
         {children}
-        <Toaster />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
-  )
+  );
 }

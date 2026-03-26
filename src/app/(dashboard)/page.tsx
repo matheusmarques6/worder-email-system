@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Mail, Eye, MousePointerClick, Users, Zap } from "lucide-react"
+import { Mail, Eye, MousePointerClick, Users, Zap, DollarSign, Plus, Upload } from "lucide-react"
 import Link from "next/link"
 import {
   AreaChart,
@@ -109,7 +109,12 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500 mt-1">Visão geral</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <MetricCard
+          label="Revenue Atribuído"
+          value={`R$ ${metrics.total_revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          icon={DollarSign}
+        />
         <MetricCard
           label="Emails Enviados"
           value={metrics.emails_sent.toLocaleString("pt-BR")}
@@ -135,6 +140,54 @@ export default function DashboardPage() {
           value={String(metrics.live_flows)}
           icon={Zap}
         />
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            href="/campaigns/new"
+            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
+                <Mail size={20} className="text-brand-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Criar Campanha</p>
+                <p className="text-xs text-gray-500">Envie um email para sua base</p>
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/flows/new"
+            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
+                <Zap size={20} className="text-brand-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Criar Automação</p>
+                <p className="text-xs text-gray-500">Configure um flow automático</p>
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/audience/profiles"
+            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
+                <Upload size={20} className="text-brand-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Importar Contatos</p>
+                <p className="text-xs text-gray-500">Importe sua base de contatos</p>
+              </div>
+            </div>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">

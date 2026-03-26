@@ -8,6 +8,14 @@ interface Store {
   user_id: string;
   name: string;
   shopify_domain: string | null;
+  shopify_access_token: string | null;
+  sending_domain: string | null;
+  resend_domain_id: string | null;
+  domain_verified: boolean;
+  sender_name: string | null;
+  sender_email: string | null;
+  reply_to: string | null;
+  webhook_secret: string | null;
   created_at: string;
 }
 

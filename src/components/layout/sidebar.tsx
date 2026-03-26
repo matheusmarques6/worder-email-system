@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import {
   LayoutDashboard,
   Mail,
+  MessageSquare,
   Zap,
   FileText,
   Users,
@@ -36,6 +37,11 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     href: "/",
     icon: <LayoutDashboard size={18} />,
+  },
+  {
+    label: "Inbox",
+    href: "/inbox",
+    icon: <MessageSquare size={18} />,
   },
   {
     label: "Campanhas",

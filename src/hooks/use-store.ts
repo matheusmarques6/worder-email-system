@@ -1,35 +1,45 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import type { Store } from "@/types"
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Store } from "@/types";
 
 export function useStore() {
-  const [store, setStore] = useState<Store | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [store, setStore] = useState<Store | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient()
-
     async function fetchStore() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        setLoading(false)
-        return
+        setLoading(false);
+        setError("Usuário não autenticado");
+        return;
       }
 
-      const { data } = await supabase
+      const { data, error: storeError } = await supabase
         .from("stores")
         .select("*")
         .eq("user_id", user.id)
-        .single()
+        .single();
 
-      setStore(data)
-      setLoading(false)
+      if (storeError) {
+        setError(storeError.message);
+      } else {
+        setStore(data as Store);
+      }
+
+      setLoading(false);
     }
 
-    fetchStore()
-  }, [])
+    fetchStore();
+  }, []);
 
-  return { store, loading }
+  return { store, loading, error };
 }

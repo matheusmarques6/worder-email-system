@@ -1,36 +1,38 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { NextResponse, type NextRequest } from "next/server";
+import { sendEmail } from "@/lib/email/resend";
+import { renderMergeTags } from "@/lib/email/render";
 
 export async function POST(request: NextRequest) {
-  try {
-    const { campaignId, testEmail } = await request.json()
+  const body = await request.json();
+  const { to, subject, html, senderName, senderEmail } = body;
 
-    if (!campaignId || !testEmail) {
-      return NextResponse.json(
-        { error: "campaignId and testEmail are required" },
-        { status: 400 }
-      )
-    }
-
-    const supabase = createAdminClient()
-
-    const { data: campaign } = await supabase
-      .from("campaigns")
-      .select("*, templates(*)")
-      .eq("id", campaignId)
-      .single()
-
-    if (!campaign) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
-    }
-
-    // For now, just log and return success
-    // Full sending implementation will use Resend
-    console.log(`Test email would be sent to ${testEmail} for campaign ${campaignId}`)
-
-    return NextResponse.json({ success: true, message: `Email de teste enviado para ${testEmail}` })
-  } catch (err) {
-    console.error("Test email error:", err)
-    return NextResponse.json({ error: "Failed to send test email" }, { status: 500 })
+  if (!to || !subject || !html) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
   }
+
+  // Render with example merge tags
+  const renderedHtml = renderMergeTags(html, {
+    first_name: "João",
+    last_name: "Silva",
+    email: to,
+    store_name: "Minha Loja",
+    store_url: "https://minha-loja.com.br",
+  });
+
+  const result = await sendEmail({
+    to,
+    from: senderEmail || "test@convertfy.com",
+    senderName: senderName || "Convertfy Mail",
+    subject: `[TESTE] ${subject}`,
+    html: renderedHtml,
+  });
+
+  if (result.error) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
+
+  return NextResponse.json({ id: result.id });
 }

@@ -1,38 +1,47 @@
-import type { LucideIcon } from "lucide-react"
+import { cn } from "@/lib/utils";
+import { type LucideIcon } from "lucide-react";
 
 interface MetricCardProps {
-  label: string
-  value: string
-  change?: string
-  changeType?: "positive" | "negative"
-  icon: LucideIcon
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  change?: number;
+  loading?: boolean;
 }
 
 export function MetricCard({
+  icon: Icon,
   label,
   value,
   change,
-  changeType = "positive",
-  icon: Icon,
+  loading,
 }: MetricCardProps) {
-  return (
-    <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-500">{label}</span>
-        <div className="bg-brand-50 rounded-lg p-2">
-          <Icon size={20} className="text-brand-600" />
-        </div>
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 h-5 w-5 animate-pulse rounded bg-gray-200" />
+        <div className="mb-2 h-4 w-24 animate-pulse rounded bg-gray-200" />
+        <div className="mb-1 h-8 w-20 animate-pulse rounded bg-gray-200" />
+        <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
       </div>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
-      {change && (
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <Icon className="mb-4 h-5 w-5 text-gray-400" />
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
+      {change !== undefined && (
         <p
-          className={`text-xs mt-1 ${
-            changeType === "positive" ? "text-emerald-600" : "text-red-500"
-          }`}
+          className={cn(
+            "mt-1 text-xs",
+            change >= 0 ? "text-emerald-600" : "text-red-500"
+          )}
         >
-          {change}
+          {change >= 0 ? "↑" : "↓"} {Math.abs(change)}% vs anterior
         </p>
       )}
     </div>
-  )
+  );
 }

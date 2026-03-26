@@ -1,309 +1,199 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Mail, Eye, MousePointerClick, Users, Zap, DollarSign, Plus, Upload } from "lucide-react"
-import Link from "next/link"
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts"
-import { MetricCard } from "@/components/dashboard/metric-card"
-import { useStore } from "@/hooks/use-store"
+import { Mail, MousePointerClick, Users, Zap, Send } from "lucide-react";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { Badge } from "@/components/ui/badge";
 
-interface DashboardMetrics {
-  emails_sent: number
-  avg_open_rate: number
-  avg_click_rate: number
-  active_contacts: number
-  live_flows: number
-  total_revenue: number
-}
+const mockChartData = Array.from({ length: 30 }, (_, i) => {
+  const date = new Date();
+  date.setDate(date.getDate() - (29 - i));
+  return {
+    date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    emails: Math.floor(Math.random() * 500) + 100,
+  };
+});
 
-interface DayMetric {
-  day: string
-  sent: number
-  opened: number
-  clicked: number
-}
+const mockCampaigns = [
+  {
+    id: "1",
+    name: "Newsletter Março",
+    status: "sent" as const,
+    sent_at: "2026-03-20",
+    total_sent: 2450,
+    total_opened: 735,
+    total_clicked: 196,
+  },
+  {
+    id: "2",
+    name: "Promoção Páscoa",
+    status: "scheduled" as const,
+    sent_at: "2026-03-28",
+    total_sent: 0,
+    total_opened: 0,
+    total_clicked: 0,
+  },
+  {
+    id: "3",
+    name: "Lançamento Coleção",
+    status: "draft" as const,
+    sent_at: null,
+    total_sent: 0,
+    total_opened: 0,
+    total_clicked: 0,
+  },
+  {
+    id: "4",
+    name: "Reengajamento",
+    status: "sent" as const,
+    sent_at: "2026-03-15",
+    total_sent: 1820,
+    total_opened: 491,
+    total_clicked: 127,
+  },
+  {
+    id: "5",
+    name: "Welcome Series",
+    status: "sent" as const,
+    sent_at: "2026-03-10",
+    total_sent: 342,
+    total_opened: 178,
+    total_clicked: 89,
+  },
+];
 
-interface TopCampaign {
-  id: string
-  name: string
-  sent: number
-  open_rate: number
-  click_rate: number
-  revenue: number
-}
+const statusBadge: Record<string, { label: string; className: string }> = {
+  sent: {
+    label: "Enviada",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  },
+  scheduled: {
+    label: "Agendada",
+    className: "bg-amber-50 text-amber-700 border border-amber-200",
+  },
+  draft: {
+    label: "Rascunho",
+    className: "bg-gray-100 text-gray-600 border border-gray-200",
+  },
+  sending: {
+    label: "Enviando",
+    className: "bg-orange-50 text-orange-700 border border-orange-200",
+  },
+  failed: {
+    label: "Falhou",
+    className: "bg-red-50 text-red-700 border border-red-200",
+  },
+};
 
 export default function DashboardPage() {
-  const { store, loading: storeLoading } = useStore()
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    emails_sent: 0,
-    avg_open_rate: 0,
-    avg_click_rate: 0,
-    active_contacts: 0,
-    live_flows: 0,
-    total_revenue: 0,
-  })
-  const [chartData, setChartData] = useState<DayMetric[]>([])
-  const [topCampaigns, setTopCampaigns] = useState<TopCampaign[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!store?.id) {
-      setLoading(false)
-      return
-    }
-
-    async function fetchData() {
-      try {
-        const { getDashboardMetrics, getEmailsOverTime, getTopCampaigns } = await import(
-          "@/lib/analytics/metrics"
-        )
-        const [m, chart, campaigns] = await Promise.all([
-          getDashboardMetrics(store!.id, 30),
-          getEmailsOverTime(store!.id, 30),
-          getTopCampaigns(store!.id, 5),
-        ])
-        setMetrics(m)
-        setChartData(chart)
-        setTopCampaigns(campaigns)
-      } catch {
-        // Analytics not available yet, keep defaults
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [store])
-
-  if (storeLoading || loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <div className="h-7 w-32 bg-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mt-2" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 h-28 animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Visão geral</p>
-      </div>
+      <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard
-          label="Revenue Atribuído"
-          value={`R$ ${metrics.total_revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-          icon={DollarSign}
-        />
-        <MetricCard
+          icon={Send}
           label="Emails Enviados"
-          value={metrics.emails_sent.toLocaleString("pt-BR")}
+          value="12.458"
+          change={12.5}
+        />
+        <MetricCard
           icon={Mail}
-        />
-        <MetricCard
           label="Taxa Abertura"
-          value={`${metrics.avg_open_rate.toFixed(1)}%`}
-          icon={Eye}
+          value="28.4%"
+          change={3.2}
         />
         <MetricCard
-          label="Taxa Clique"
-          value={`${metrics.avg_click_rate.toFixed(1)}%`}
           icon={MousePointerClick}
+          label="Taxa Clique"
+          value="4.7%"
+          change={-1.1}
         />
         <MetricCard
-          label="Contatos Ativos"
-          value={metrics.active_contacts.toLocaleString("pt-BR")}
           icon={Users}
+          label="Contatos Ativos"
+          value="3.842"
+          change={8.3}
         />
-        <MetricCard
-          label="Flows Ativos"
-          value={String(metrics.live_flows)}
-          icon={Zap}
-        />
+        <MetricCard icon={Zap} label="Flows Ativos" value="7" change={0} />
       </div>
 
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            href="/campaigns/new"
-            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
-                <Mail size={20} className="text-brand-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Criar Campanha</p>
-                <p className="text-xs text-gray-500">Envie um email para sua base</p>
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/flows/new"
-            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
-                <Zap size={20} className="text-brand-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Criar Automação</p>
-                <p className="text-xs text-gray-500">Configure um flow automático</p>
-              </div>
-            </div>
-          </Link>
-          <Link
-            href="/audience/profiles"
-            className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 hover:border-brand-300 hover:shadow transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-brand-50 rounded-lg p-2 group-hover:bg-brand-100 transition-colors">
-                <Upload size={20} className="text-brand-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Importar Contatos</p>
-                <p className="text-xs text-gray-500">Importe sua base de contatos</p>
-              </div>
-            </div>
-          </Link>
+      <RevenueChart data={mockChartData} />
+
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Últimas campanhas
+          </h2>
         </div>
-      </div>
-
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Emails Enviados
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">Últimos 30 dias</p>
-        {chartData.length > 0 ? (
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: "#9CA3AF" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
-                />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="sent"
-                  stroke="#F97316"
-                  fill="#FFF7ED"
-                  strokeWidth={2}
-                  name="Enviados"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="opened"
-                  stroke="#10B981"
-                  fill="#ECFDF5"
-                  strokeWidth={2}
-                  name="Abertos"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Mail size={40} className="text-gray-300 mb-3" />
-            <p className="text-sm text-gray-500">
-              Nenhum dado disponível ainda
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Top Campanhas
-        </h2>
-        {topCampaigns.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <th className="px-6 py-3 text-left">Nome</th>
-                  <th className="px-6 py-3 text-left">Enviados</th>
-                  <th className="px-6 py-3 text-left">Open Rate</th>
-                  <th className="px-6 py-3 text-left">Click Rate</th>
-                  <th className="px-6 py-3 text-left">Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topCampaigns.map((c) => (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Nome
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Data
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Enviados
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Abertos
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Cliques
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockCampaigns.map((campaign) => {
+                const badge = statusBadge[campaign.status];
+                return (
                   <tr
-                    key={c.id}
+                    key={campaign.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                      <Link
-                        href={`/campaigns/${c.id}`}
-                        className="hover:text-brand-600"
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {campaign.name}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge
+                        variant="outline"
+                        className={badge.className}
                       >
-                        {c.name}
-                      </Link>
+                        {badge.label}
+                      </Badge>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {c.sent.toLocaleString("pt-BR")}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {campaign.sent_at
+                        ? new Date(campaign.sent_at).toLocaleDateString("pt-BR")
+                        : "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {c.open_rate.toFixed(1)}%
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {campaign.total_sent.toLocaleString("pt-BR")}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {c.click_rate.toFixed(1)}%
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {campaign.total_sent > 0
+                        ? `${((campaign.total_opened / campaign.total_sent) * 100).toFixed(1)}%`
+                        : "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {campaign.total_sent > 0
+                        ? `${((campaign.total_clicked / campaign.total_sent) * 100).toFixed(1)}%`
+                        : "—"}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Mail size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg text-gray-600 mb-1">
-              Nenhuma campanha enviada
-            </p>
-            <p className="text-sm text-gray-400 mb-4">
-              Crie sua primeira campanha de email
-            </p>
-            <Link
-              href="/campaigns/new"
-              className="bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2 text-sm transition-colors"
-            >
-              Criar Campanha
-            </Link>
-          </div>
-        )}
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  )
+  );
 }

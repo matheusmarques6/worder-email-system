@@ -1,117 +1,158 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Users, Upload, Search } from "lucide-react";
-import { ImportCsvDialog } from "@/components/contacts/import-csv";
+import { Suspense, useEffect, useState, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
+import { Download } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { useStore } from "@/hooks/use-store"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ContactsTable } from "@/components/contacts/contacts-table"
+import { ImportCSV } from "@/components/contacts/import-csv"
+import type { Contact } from "@/types/database"
 
-const mockContacts = [
-  { id: "1", first_name: "Maria", last_name: "Silva", email: "maria@email.com", phone: "+5511999001234", total_spent: 1250.9, total_orders: 5, consent_email: "subscribed" as const, created_at: "2026-02-15" },
-  { id: "2", first_name: "João", last_name: "Santos", email: "joao@email.com", phone: "+5511999005678", total_spent: 890.5, total_orders: 3, consent_email: "subscribed" as const, created_at: "2026-01-20" },
-  { id: "3", first_name: "Ana", last_name: "Costa", email: "ana@email.com", phone: null, total_spent: 0, total_orders: 0, consent_email: "unsubscribed" as const, created_at: "2026-03-01" },
-  { id: "4", first_name: "Pedro", last_name: "Oliveira", email: "pedro@email.com", phone: "+5511999009012", total_spent: 3450.0, total_orders: 12, consent_email: "subscribed" as const, created_at: "2025-11-10" },
-  { id: "5", first_name: "Carla", last_name: "Ferreira", email: "carla@email.com", phone: "+5511999003456", total_spent: 560.0, total_orders: 2, consent_email: "bounced" as const, created_at: "2026-03-10" },
-];
+interface ContactWithStats extends Contact {
+  total_spent?: number
+  total_orders?: number
+  tags?: string[]
+  city?: string | null
+  state?: string | null
+  country?: string | null
+  consent_email?: string
+  consent_whatsapp?: string
+  properties?: Record<string, unknown>
+}
 
-const consentBadge = {
-  subscribed: { label: "Inscrito", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
-  unsubscribed: { label: "Descadastrado", className: "bg-gray-100 text-gray-600 border border-gray-200" },
-  bounced: { label: "Bounced", className: "bg-red-50 text-red-700 border border-red-200" },
-};
+const PAGE_SIZE = 20
 
 export default function ProfilesPage() {
-  const [search, setSearch] = useState("");
-  const [importOpen, setImportOpen] = useState(false);
+  return (
+    <Suspense fallback={<ProfilesSkeleton />}>
+      <ProfilesContent />
+    </Suspense>
+  )
+}
 
-  const filtered = mockContacts.filter(
-    (c) =>
-      c.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      c.last_name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
-  );
+function ProfilesSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-5 w-64" />
+      </div>
+      <Skeleton className="h-[400px] w-full" />
+    </div>
+  )
+}
+
+function ProfilesContent() {
+  const searchParams = useSearchParams()
+  const { store, loading: storeLoading } = useStore()
+
+  const page = Number(searchParams.get("page") || "1")
+  const search = searchParams.get("search") || ""
+  const filter = searchParams.get("filter") || ""
+
+  const [contacts, setContacts] = useState<ContactWithStats[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  const fetchContacts = useCallback(async () => {
+    if (!store) return
+
+    setLoading(true)
+    const supabase = createClient()
+    const offset = (page - 1) * PAGE_SIZE
+
+    let query = supabase
+      .from("contacts")
+      .select("*", { count: "exact" })
+      .eq("store_id", store.id)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (search) {
+      query = query.or(
+        `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`
+      )
+    }
+
+    if (filter === "subscribed") {
+      query = query.eq("subscribed", true)
+    } else if (filter === "unsubscribed") {
+      query = query.eq("subscribed", false)
+    }
+
+    const { data, count } = await query
+
+    setContacts((data as ContactWithStats[]) ?? [])
+    setTotal(count ?? 0)
+    setLoading(false)
+  }, [store, page, search, filter])
+
+  useEffect(() => {
+    if (store) {
+      fetchContacts()
+    }
+  }, [store, fetchContacts])
+
+  if (storeLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-28" />
+        </div>
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Perfis</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Gerencie seus contatos e perfis
+          <h1 className="text-2xl font-semibold text-gray-900">Contatos</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {total > 0
+              ? `${total} contato${total !== 1 ? "s" : ""} no total`
+              : "Gerencie seus contatos"}
           </p>
         </div>
-        <Button onClick={() => setImportOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Importar CSV
-        </Button>
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Buscar por nome ou email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white py-16 shadow-sm">
-          <Users className="mb-4 h-12 w-12 text-gray-300" />
-          <p className="text-lg text-gray-600">Nenhum contato encontrado</p>
-          <p className="mt-1 text-sm text-gray-400">
-            Importe seus contatos via CSV ou conecte o Shopify
-          </p>
-          <Button className="mt-4" onClick={() => setImportOpen(true)}>
-            Importar CSV
+        <div className="flex items-center gap-3">
+          {store && (
+            <ImportCSV storeId={store.id} onComplete={fetchContacts} />
+          )}
+          <Button variant="ghost">
+            <Download size={18} />
+            Exportar
           </Button>
         </div>
-      ) : (
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Nome</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Telefone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Total Gasto</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Pedidos</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Consent</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Criado em</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((contact) => {
-                  const badge = consentBadge[contact.consent_email];
-                  return (
-                    <tr key={contact.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <Link href={`/audience/profiles/${contact.id}`} className="text-sm font-medium text-gray-900 hover:text-brand-600">
-                          {contact.first_name} {contact.last_name}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{contact.email}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{contact.phone || "—"}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">R$ {contact.total_spent.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{contact.total_orders}</td>
-                      <td className="px-6 py-4">
-                        <Badge variant="outline" className={badge.className}>{badge.label}</Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">{new Date(contact.created_at).toLocaleDateString("pt-BR")}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      </div>
 
-      <ImportCsvDialog open={importOpen} onOpenChange={setImportOpen} />
+      {/* Table */}
+      {loading ? (
+        <div className="space-y-4">
+          <div className="flex gap-3">
+            <Skeleton className="h-10 flex-1 max-w-sm" />
+            <Skeleton className="h-10 w-[160px]" />
+          </div>
+          <Skeleton className="h-[400px] w-full rounded-lg" />
+        </div>
+      ) : (
+        <ContactsTable
+          contacts={contacts}
+          total={total}
+          page={page}
+          search={search}
+          filter={filter}
+        />
+      )}
     </div>
-  );
+  )
 }

@@ -1,167 +1,270 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RuleGroupType, RuleType } from "react-querybuilder"
 
-interface SegmentConditions {
-  combinator: "and" | "or";
-  rules: Array<{
-    field: string;
-    operator: string;
-    value: string;
-  }>;
+export interface EventFilter {
+  eventName: string
+  operator: string
+  value: number
+  timeframeDays?: number
 }
 
-export async function buildSupabaseQuery(
-  conditions: SegmentConditions,
-  storeId: string,
-  supabase: SupabaseClient
-): Promise<string[]> {
-  const { combinator, rules } = conditions;
-
-  if (rules.length === 0) return [];
-
-  // For AND: apply all filters to one query
-  // For OR: run separate queries and union results
-  if (combinator === "and") {
-    return resolveAndRules(rules, storeId, supabase);
-  } else {
-    return resolveOrRules(rules, storeId, supabase);
-  }
+export interface SegmentFilters {
+  combinator: "and" | "or"
+  filters: ProfileFilter[]
+  eventFilters: EventFilter[]
 }
 
-async function resolveAndRules(
-  rules: SegmentConditions["rules"],
-  storeId: string,
-  supabase: SupabaseClient
-): Promise<string[]> {
-  let query = supabase
-    .from("contacts")
-    .select("id")
-    .eq("store_id", storeId);
-
-  for (const rule of rules) {
-    if (rule.field.startsWith("event:")) {
-      // Event-based rules need subquery approach
-      const eventType = rule.field.replace("event:", "");
-      const contactIds = await getContactsWithEvent(
-        eventType,
-        rule.operator,
-        rule.value,
-        storeId,
-        supabase
-      );
-      if (contactIds.length === 0) return [];
-      query = query.in("id", contactIds);
-      continue;
-    }
-
-    query = applyFilter(query, rule);
-  }
-
-  const { data } = await query;
-  return (data || []).map((c) => c.id);
+export interface ProfileFilter {
+  field: string
+  method: string
+  value: string | string[] | null
 }
 
-async function resolveOrRules(
-  rules: SegmentConditions["rules"],
-  storeId: string,
-  supabase: SupabaseClient
-): Promise<string[]> {
-  const allIds = new Set<string>();
+const EVENT_FIELD_PREFIX = "event:"
 
-  for (const rule of rules) {
-    if (rule.field.startsWith("event:")) {
-      const eventType = rule.field.replace("event:", "");
-      const ids = await getContactsWithEvent(
-        eventType,
-        rule.operator,
-        rule.value,
-        storeId,
-        supabase
-      );
-      ids.forEach((id) => allIds.add(id));
+function isEventField(field: string): boolean {
+  return field.startsWith(EVENT_FIELD_PREFIX)
+}
+
+function extractEventName(field: string): string {
+  return field.replace(EVENT_FIELD_PREFIX, "")
+}
+
+function processRule(rule: RuleType): { profileFilter?: ProfileFilter; eventFilter?: EventFilter } {
+  const { field, operator, value } = rule
+
+  if (isEventField(field)) {
+    const stringValue = String(value)
+    let count: number
+    let timeframeDays: number | undefined
+
+    // Support "count:days" format, e.g. "1:30" means at least 1 in last 30 days
+    if (stringValue.includes(":")) {
+      const [countPart, daysPart] = stringValue.split(":")
+      count = Number(countPart)
+      timeframeDays = Number(daysPart)
     } else {
-      let query = supabase
-        .from("contacts")
-        .select("id")
-        .eq("store_id", storeId);
-      query = applyFilter(query, rule);
-      const { data } = await query;
-      (data || []).forEach((c) => allIds.add(c.id));
+      count = Number(value)
+    }
+
+    return {
+      eventFilter: {
+        eventName: extractEventName(field),
+        operator,
+        value: count,
+        timeframeDays,
+      },
     }
   }
 
-  return Array.from(allIds);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyFilter(query: any, rule: SegmentConditions["rules"][0]) {
-  const { field, operator, value } = rule;
+  let method: string
+  let filterValue: string | string[] | null = value as string
 
   switch (operator) {
+    case "=":
     case "equals":
-      return query.eq(field, value);
+      method = "eq"
+      break
+    case "!=":
     case "not_equals":
-      return query.neq(field, value);
+      method = "neq"
+      break
     case "contains":
-      return query.ilike(field, `%${value}%`);
-    case "greater_than":
-      return query.gt(field, value);
-    case "less_than":
-      return query.lt(field, value);
+      method = "ilike"
+      filterValue = `%${value}%`
+      break
+    case "starts_with":
+      method = "ilike"
+      filterValue = `${value}%`
+      break
+    case "ends_with":
+      method = "ilike"
+      filterValue = `%${value}`
+      break
     case "is_set":
-      return query.not(field, "is", null);
+      method = "not_is_null"
+      filterValue = null
+      break
+    case "is_not_set":
+      method = "is_null"
+      filterValue = null
+      break
+    case ">":
+      method = "gt"
+      break
+    case "<":
+      method = "lt"
+      break
+    case ">=":
+      method = "gte"
+      break
+    case "<=":
+      method = "lte"
+      break
+    case "between":
+      method = "between"
+      filterValue = String(value).split(",").map((v) => v.trim())
+      break
+    case "before":
+      method = "lt"
+      break
+    case "after":
+      method = "gt"
+      break
     case "in_last_days": {
-      const daysAgo = new Date();
-      daysAgo.setDate(daysAgo.getDate() - parseInt(value));
-      return query.gte(field, daysAgo.toISOString());
+      method = "gte"
+      const days = Number(value)
+      filterValue = new Date(Date.now() - days * 86400000).toISOString()
+      break
+    }
+    case "not_in_last_days": {
+      method = "lt"
+      const daysAgo = Number(value)
+      filterValue = new Date(Date.now() - daysAgo * 86400000).toISOString()
+      break
+    }
+    case "in_last_months": {
+      method = "gte"
+      const months = Number(value)
+      const date = new Date()
+      date.setMonth(date.getMonth() - months)
+      filterValue = date.toISOString()
+      break
     }
     default:
-      return query;
+      method = "eq"
+  }
+
+  return {
+    profileFilter: {
+      field,
+      method,
+      value: filterValue,
+    },
   }
 }
 
-async function getContactsWithEvent(
-  eventType: string,
-  operator: string,
-  value: string,
-  storeId: string,
-  supabase: SupabaseClient
-): Promise<string[]> {
-  if (operator === "zero") {
-    // Contacts who have NOT done this event
-    const { data: withEvent } = await supabase
-      .from("events")
-      .select("contact_id")
-      .eq("store_id", storeId)
-      .eq("type", eventType);
-
-    const eventContactIds = new Set(
-      (withEvent || []).map((e) => e.contact_id)
-    );
-
-    const { data: allContacts } = await supabase
-      .from("contacts")
-      .select("id")
-      .eq("store_id", storeId);
-
-    return (allContacts || [])
-      .filter((c) => !eventContactIds.has(c.id))
-      .map((c) => c.id);
+function processGroup(group: RuleGroupType): SegmentFilters {
+  const combinator = (group.combinator === "or" ? "or" : "and") as "and" | "or"
+  const result: SegmentFilters = {
+    combinator,
+    filters: [],
+    eventFilters: [],
   }
 
-  // Contacts who have done this event at least N times
-  const { data } = await supabase
-    .from("events")
-    .select("contact_id")
-    .eq("store_id", storeId)
-    .eq("type", eventType);
+  for (const rule of group.rules) {
+    if ("combinator" in rule) {
+      // Nested group - recursively process
+      const nested = processGroup(rule as RuleGroupType)
+      result.filters.push(...nested.filters)
+      result.eventFilters.push(...nested.eventFilters)
+    } else {
+      const processed = processRule(rule as RuleType)
+      if (processed.profileFilter) {
+        result.filters.push(processed.profileFilter)
+      }
+      if (processed.eventFilter) {
+        result.eventFilters.push(processed.eventFilter)
+      }
+    }
+  }
 
-  const counts = new Map<string, number>();
-  (data || []).forEach((e) => {
-    counts.set(e.contact_id, (counts.get(e.contact_id) || 0) + 1);
-  });
+  return result
+}
 
-  const minCount = operator === "at_least" ? parseInt(value) : 1;
-  return Array.from(counts.entries())
-    .filter(([, count]) => count >= minCount)
-    .map(([id]) => id);
+export function buildSupabaseQuery(
+  query: RuleGroupType,
+  _storeId: string
+): SegmentFilters {
+  return processGroup(query)
+}
+
+function buildFilterString(filter: ProfileFilter): string {
+  switch (filter.method) {
+    case "eq":
+      return `${filter.field}.eq.${filter.value}`
+    case "neq":
+      return `${filter.field}.neq.${filter.value}`
+    case "ilike":
+      return `${filter.field}.ilike.${filter.value}`
+    case "gt":
+      return `${filter.field}.gt.${filter.value}`
+    case "lt":
+      return `${filter.field}.lt.${filter.value}`
+    case "gte":
+      return `${filter.field}.gte.${filter.value}`
+    case "lte":
+      return `${filter.field}.lte.${filter.value}`
+    case "not_is_null":
+      return `${filter.field}.not.is.null`
+    case "is_null":
+      return `${filter.field}.is.null`
+    case "between": {
+      const vals = filter.value as string[]
+      if (vals.length === 2) {
+        return `and(${filter.field}.gte.${vals[0]},${filter.field}.lte.${vals[1]})`
+      }
+      return `${filter.field}.eq.${filter.value}`
+    }
+    default:
+      return `${filter.field}.eq.${filter.value}`
+  }
+}
+
+export function applyProfileFilters(
+  supabaseQuery: ReturnType<ReturnType<typeof import("@supabase/supabase-js").createClient>["from"]>,
+  filters: ProfileFilter[],
+  combinator: "and" | "or" = "and"
+) {
+  let q = supabaseQuery
+
+  if (filters.length === 0) return q
+
+  // For OR combinator, use Supabase's .or() method
+  if (combinator === "or") {
+    const orClauses = filters.map(buildFilterString)
+    q = q.or(orClauses.join(","))
+    return q
+  }
+
+  // For AND combinator, chain filters sequentially (default behavior)
+  for (const filter of filters) {
+    switch (filter.method) {
+      case "eq":
+        q = q.eq(filter.field, filter.value)
+        break
+      case "neq":
+        q = q.neq(filter.field, filter.value)
+        break
+      case "ilike":
+        q = q.ilike(filter.field, filter.value as string)
+        break
+      case "gt":
+        q = q.gt(filter.field, filter.value)
+        break
+      case "lt":
+        q = q.lt(filter.field, filter.value)
+        break
+      case "gte":
+        q = q.gte(filter.field, filter.value)
+        break
+      case "lte":
+        q = q.lte(filter.field, filter.value)
+        break
+      case "not_is_null":
+        q = q.not(filter.field, "is", null)
+        break
+      case "is_null":
+        q = q.is(filter.field, null)
+        break
+      case "between": {
+        const vals = filter.value as string[]
+        if (vals.length === 2) {
+          q = q.gte(filter.field, vals[0]).lte(filter.field, vals[1])
+        }
+        break
+      }
+    }
+  }
+
+  return q
 }

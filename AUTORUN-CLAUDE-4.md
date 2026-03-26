@@ -1,119 +1,142 @@
-# AUTORUN-CLAUDE-4.md — Segments + Contacts + Lists
+# AUTORUN-CLAUDE-4.md — Contacts + Segments + Lists + Sign-up Forms + CDP
 
-Leia CLAUDE.md e DESIGN-SYSTEM.md. Execute TUDO abaixo em sequência sem parar. Antes de começar: `git pull origin main`.
+Leia CLAUDE.md e DESIGN-SYSTEM.md. git pull origin main. Execute TUDO sem parar.
 
-Você SÓ cria/edita arquivos nestas pastas:
-src/lib/segments/, src/components/segments/, src/components/contacts/, src/app/(dashboard)/audience/
+SÓ edite: src/lib/segments/, src/components/segments/, src/components/contacts/, src/components/forms/, src/app/(dashboard)/audience/, src/app/(dashboard)/forms/, src/app/api/forms/
 
 ---
 
-## MÓDULO A: Contacts Table + Profile Page
+## MÓDULO A: Contacts Table + Profile
 
-Criar src/app/(dashboard)/audience/profiles/page.tsx:
-- Título "Contatos", botão "Importar CSV" (secondary)
-- DataTable paginada server-side (20/page)
-- Colunas: Nome (first_name + last_name), Email, Telefone, Total Gasto (R$ formatado), Pedidos, Consent (badge: subscribed=verde, unsubscribed=vermelho, bounced=cinza), Criado em (date formatado)
-- Busca por nome ou email (input com ícone Search)
-- Clicar em row → navegar /audience/profiles/[id]
-- Empty state: "Nenhum contato ainda. Conecte sua loja Shopify ou importe um CSV."
+src/app/(dashboard)/audience/profiles/page.tsx:
+- H1 "Contatos", subtitle count total. Botões: "Importar CSV" (secondary), "Exportar" (ghost)
+- DataTable paginada server-side 20/page
+- Colunas: checkbox select, Nome (first+last), Email, Telefone, Total Gasto (R$ formato), Pedidos (número), Consent (badge verde/vermelho/cinza), Tags (badges), Criado em
+- Busca por nome/email. Filtro consent (Todos/Subscribed/Unsubscribed)
+- Bulk actions ao selecionar: Adicionar tag, Remover tag, Adicionar à lista
+- Click row → /audience/profiles/[id]
+- Empty state: ícone Users, "Nenhum contato ainda. Conecte Shopify ou importe CSV."
 
-Criar src/components/contacts/contacts-table.tsx:
-- shadcn DataTable com sorting por nome, email, total_spent, created_at
-- Badge component para consent_email
-- Formatação: R$ para valores monetários, dd/mm/yyyy para datas
+src/components/contacts/contacts-table.tsx — DataTable com sorting, badges, formatação R$.
 
-Criar src/app/(dashboard)/audience/profiles/[id]/page.tsx:
-- Buscar contact pelo id + events + email_sends + list_members
-- Layout com 2 colunas: info card à esquerda (1/3), tabs à direita (2/3)
-- Info card: avatar placeholder com iniciais, nome, email, phone, cidade/estado, tags (badges), consent badge, botão "Editar"
-- Tabs (shadcn Tabs):
-  Timeline: eventos ordenados por created_at desc. Cada evento: ícone por tipo (ShoppingCart para placed_order, Mail para email_sent, Eye para email_opened, MousePointer para email_clicked, CreditCard para order_paid, Truck para order_fulfilled), título, data relativa, expandir para ver properties
-  Emails: tabela de email_sends com subject, status, opened_at, clicked_at
-  Listas: listas e segmentos que o contato pertence
+src/app/(dashboard)/audience/profiles/[id]/page.tsx:
+- Grid 2 colunas (1/3 + 2/3)
+- Coluna esquerda: Card com avatar (iniciais, bg-brand-100 text-brand-700, w-16 h-16 rounded-full text-xl), nome completo, email (copiável), telefone, localização (cidade/estado/país), tags como badges editáveis (+), consent badge, botões Editar/Suprimir
+- Coluna direita: Tabs (shadcn):
+  **Timeline**: eventos cronológicos desc. Cada evento: ícone por tipo (ShoppingCart=placed_order, Mail=email_sent, Eye=email_opened, MousePointerClick=email_clicked, CreditCard=order_paid, Truck=order_fulfilled, ShoppingBag=started_checkout, UserPlus=customer_created), título, data relativa (há 2 horas), valor se revenue, expandir para ver properties JSON formatado
+  **Emails**: tabela email_sends com subject, status badge, sent_at, opened_at, clicked_at
+  **Pedidos**: tabela events WHERE type=placed_order. Order number, total, items count, data
+  **Listas**: listas e segmentos do contato. Botão "Adicionar à lista"
 
-Criar src/components/contacts/contact-detail.tsx — Card de info pessoal
-Criar src/components/contacts/contact-timeline.tsx — Lista de eventos com ícones
+src/components/contacts/contact-timeline.tsx — Lista infinita. Ícones coloridos. Date relative com date-fns (formatDistanceToNow com locale pt-BR).
+src/components/contacts/import-csv.tsx — Dialog multi-step:
+1. Upload CSV (drop zone com Upload icon)
+2. Parse papaparse → preview tabela 5 rows
+3. Mapeamento: cada coluna CSV → dropdown campo contato (email obrigatório, rest opcional)
+4. Selecionar lista destino
+5. Progress bar durante import → toast sucesso
 
-Criar src/components/contacts/import-csv.tsx:
-- Dialog (shadcn Dialog) de importação:
-  Step 1: Drop zone para upload CSV. Usar input type=file accept=".csv"
-  Step 2: Parse com papaparse no browser. Mostrar preview 5 primeiras linhas em tabela
-  Step 3: Mapeamento: para cada coluna do CSV, select dropdown mapeando para campo do contato (email, first_name, last_name, phone, city, tags). Campo email obrigatório.
-  Step 4: Selecionar lista destino (dropdown das lists da store)
-  Step 5: Botão "Importar X contatos" → server action que faz bulk upsert em contacts + insert em list_members
-  Progress bar durante import. Toast de sucesso com contagem.
+## MÓDULO B: Lists
 
-## MÓDULO B: Lists CRUD
+src/app/(dashboard)/audience/lists/page.tsx — Tabela: nome, contagem, opt-in type badge, data. Botão "Criar Lista" → dialog: nome, descrição, opt-in type (single/double). Empty state.
 
-Criar src/app/(dashboard)/audience/lists/page.tsx:
-- Tabela: nome, descrição, tipo opt-in (single/double), contagem membros, data criação
-- Botão "Criar Lista" → dialog com input nome + description + select opt-in type → INSERT lists
-- Empty state: "Crie sua primeira lista para organizar seus contatos"
+src/app/(dashboard)/audience/lists/[id]/page.tsx — Header com nome, badge, contagem. Tabela membros: nome, email, status, data. Botões: Adicionar contato (dialog busca), Importar CSV, Exportar. Remover membro.
 
-Criar src/app/(dashboard)/audience/lists/[id]/page.tsx:
-- Header: nome lista, badge opt-in type, contagem
-- Tabela de membros: nome, email, phone, status (active/unsubscribed), data adição
-- Botões: "Adicionar Contato" (dialog com busca de contato existente), "Importar CSV"
-- Botão "Remover" por membro
+## MÓDULO C: Segment Builder Completo
 
-## MÓDULO C: Segment Builder + Resolver
+src/app/(dashboard)/audience/segments/page.tsx — Tabela: nome, descrição, contagem (badge), badge "Pré-construído" se is_prebuilt, updated_at. Botão "Criar Segmento". Seção inferior: "Segmentos prontos para usar" com 10 cards. Empty state.
 
-Criar src/app/(dashboard)/audience/segments/page.tsx:
-- Tabela: nome, descrição, contagem, badge "Pré-construído" se is_prebuilt, última atualização
-- Botão "Criar Segmento"
-- Seção "Segmentos Pré-construídos" com 6 cards: Engajados, Não Engajados, Compradores Recorrentes, Novos Inscritos, Nunca Comprou, Em Risco
-- Empty state para tabela vazia
+src/app/(dashboard)/audience/segments/new/page.tsx — Nome, descrição. SegmentBuilder component. Preview contagem tempo real. Botão "Criar Segmento" (laranja).
 
-Criar src/app/(dashboard)/audience/segments/new/page.tsx:
-- Form: nome, descrição
-- SegmentBuilder component abaixo
-- Preview: contagem estimada em tempo real
-- Botão "Criar Segmento" (laranja)
-
-Criar src/components/segments/segment-builder.tsx:
-- Wrapper do react-querybuilder customizado com shadcn components
-- Fields configurados:
-  Profile: email(text), first_name(text), city(text), country(text), total_spent(number), total_orders(number), consent_email(select: subscribed/unsubscribed/bounced), tags(text), created_at(date), last_order_at(date)
-  Events: placed_order_count(number), email_opened_count(number), email_clicked_count(number), started_checkout_count(number)
-- Operators por tipo: text(equals, not_equals, contains, starts_with, is_set, is_not_set), number(=, !=, >, <, >=, <=, between), date(before, after, in_last_days, in_last_months), select(equals, not_equals)
-- Combinator AND/OR toggle
-- Botão "Adicionar condição"
-- Visual limpo seguindo DESIGN-SYSTEM.md
-
-Criar src/components/segments/segment-preview.tsx:
-- Mostra: "X contatos correspondem" com ícone Users
-- Abaixo: tabela com 5 sample profiles (nome, email)
-- Loading state com skeleton
-
-Criar src/lib/segments/resolver.ts:
-```typescript
-export async function resolveSegment(segmentId: string, storeId: string): Promise<string[]> {
-  // Buscar segment.conditions (JSON do react-querybuilder)
-  // Chamar buildContactQuery
-  // Retornar array de contact_ids
-}
-export async function countSegment(conditions: object, storeId: string): Promise<number> {
-  // Mesmo que resolve mas retorna apenas count
-}
+src/components/segments/segment-builder.tsx — react-querybuilder CUSTOMIZADO com shadcn:
+Fields COMPLETOS:
 ```
+// Profile properties
+email (text) — operators: equals, not_equals, contains, starts_with, ends_with, is_set, is_not_set
+first_name (text)
+last_name (text)
+phone (text) — is_set, is_not_set
+city (text) — equals, contains
+state (text) — equals
+country (text) — equals
+zip_code (text)
+tags (text) — contains, not_contains
+source (select) — values: shopify, import, form, api
+consent_email (select) — values: subscribed, unsubscribed, bounced
+consent_whatsapp (select) — values: subscribed, unsubscribed, none
+total_spent (number) — =, !=, >, <, >=, <=, between
+total_orders (number)
+avg_order_value (number)
+created_at (date) — before, after, in_last_days, in_last_months, between_dates
+last_order_at (date)
+// Event-based
+event:placed_order (number+timeframe) — at_least X times in last Y days
+event:started_checkout (number+timeframe)
+event:email_opened (number+timeframe)
+event:email_clicked (number+timeframe)
+event:viewed_product (number+timeframe)
+// List membership
+in_list (select) — values: dynamic from lists table
+not_in_list (select)
+```
+Combinator AND/OR toggle visível. Botão "Adicionar condição" + "Adicionar grupo".
+Visual clean com shadcn components (Select, Input, Button). Não usar estilo default do react-querybuilder.
 
-Criar src/lib/segments/query-builder.ts:
-- buildContactQuery(conditions, storeId): traduzir JSON do react-querybuilder para Supabase queries
-- Para profile fields: usar .eq(), .neq(), .gt(), .lt(), .gte(), .lte(), .ilike(), .contains(), .is()
-- Para event counts: subquery em events com GROUP BY contact_id HAVING count
-- Para tags: .contains('tags', [value])
-- Combinator 'and': chain de filters. Combinator 'or': usar .or()
+src/components/segments/segment-preview.tsx — Mostra count + 5 sample contacts + loading skeleton.
 
-Criar src/lib/segments/prebuilt.ts:
-- 6 segmentos pré-construídos como objetos { name, description, conditions (JSON react-querybuilder) }:
-  1. Engajados: opened email in last 30 days AND consent=subscribed
-  2. Não Engajados: NOT opened email in last 90 days AND consent=subscribed
-  3. Compradores Recorrentes: total_orders >= 2
-  4. Novos Inscritos: created_at in last 7 days
-  5. Nunca Comprou: total_orders = 0 AND consent=subscribed
-  6. Em Risco: last_order_at before 60 days ago AND total_orders >= 1
+## MÓDULO D: Segment Resolver
+
+src/lib/segments/resolver.ts:
+- resolveSegment(segmentId, storeId): Promise<string[]> — retorna contact_ids
+- countSegment(conditions, storeId): Promise<number>
+
+src/lib/segments/query-builder.ts — Traduz JSON react-querybuilder → Supabase queries:
+Profile fields: usar .eq(), .neq(), .gt(), .lt(), .ilike('%value%'), .contains(), .is(null), .not.is(null)
+Event counts: subquery em events WHERE event_type AND created_at, GROUP BY contact_id HAVING count
+List membership: subquery em list_members
+Tags: .contains('tags', [value])
+Combinator and: chain filters. or: .or('field1.eq.val1,field2.eq.val2')
+Date in_last_days: .gte('field', new Date(Date.now() - days*86400000).toISOString())
+
+src/lib/segments/prebuilt.ts — 10 segmentos pré-construídos:
+1. Inscritos Engajados — abriu email últimos 30d + subscribed
+2. Não Engajados — NÃO abriu email 90d + subscribed
+3. Compradores Recorrentes — total_orders >= 2
+4. Novos Inscritos — created_at últimos 7d
+5. Nunca Comprou — total_orders = 0 + subscribed
+6. Em Risco de Churn — last_order_at > 60d + total_orders >= 1
+7. VIP (Top Spenders) — total_spent > R$500
+8. Compradores Recentes — last_order_at últimos 30d
+9. Abandonaram Carrinho — started_checkout últimos 7d + NOT placed_order últimos 7d
+10. Fãs de Email — email_opened >= 5 últimos 30d
+
+## MÓDULO E: Sign-up Forms / Popups
+
+src/app/(dashboard)/forms/page.tsx:
+- Tabela: nome, tipo (popup/embedded/landing), status (active/inactive), submissions count, conversion rate. Botão "Criar Formulário". Empty state.
+
+src/app/(dashboard)/forms/new/page.tsx:
+- Tipo: Popup, Formulário Embedded, Landing Page
+- Config: campos a coletar (email obrigatório, nome, telefone, custom), lista destino, mensagem de sucesso
+- Design: bg color, text color, button color (default brand-500), título, subtítulo, imagem header
+- Trigger (popup): after X seconds, on exit intent, on scroll %, manual
+- Gerar embed code (para popup/embedded)
+
+src/app/(dashboard)/forms/[id]/page.tsx — Editor do form + preview + analytics (submissions, conversion rate)
+
+src/components/forms/form-builder.tsx — Builder visual simples: preview à esquerda, config à direita.
+
+src/app/api/forms/submit/route.ts — POST público (sem auth):
+Recebe { form_id, email, name?, phone?, custom_fields? }. Buscar form config → store_id. Upsert contact. Adicionar à lista configurada. INSERT list_members. Disparar flow de welcome se existe. Retornar { success }.
+
+## MÓDULO F: CDP Foundation
+
+Enriquecer o perfil do contato automaticamente:
+- No webhook handler de orders: calcular e salvar em contacts.properties: { first_purchase_date, last_purchase_date, purchase_frequency, preferred_categories[], avg_days_between_orders, predicted_next_order_date }
+- No webhook handler de products viewed: salvar em properties: { recently_viewed_products[], most_viewed_category }
+- Estes campos ficam disponíveis para segmentação e merge tags
 
 ## FINALIZAR
 
-`pnpm build` → corrigir tudo → `git pull origin main && git add -A && git commit -m "feat: contacts segments lists complete" && git push origin main`
-Se push falhar: `git pull --rebase origin main` e push novamente. NÃO PARE.
+pnpm build → corrigir → git pull --rebase origin main && git add -A && git commit -m "feat: contacts segments forms cdp" && git push origin main
+NÃO PARE.

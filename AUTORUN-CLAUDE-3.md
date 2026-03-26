@@ -1,147 +1,137 @@
-# AUTORUN-CLAUDE-3.md — Flow Builder + Execution Engine + WhatsApp
+# AUTORUN-CLAUDE-3.md — Flow Builder + Engine + WhatsApp + SMS
 
-Leia CLAUDE.md e DESIGN-SYSTEM.md. Execute TUDO abaixo em sequência sem parar. Antes de começar: `git pull origin main`.
+Leia CLAUDE.md e DESIGN-SYSTEM.md. git pull origin main. Execute TUDO sem parar.
 
-Você SÓ cria/edita arquivos nestas pastas:
-src/lib/flows/, src/lib/whatsapp/, src/components/flows/, src/app/(dashboard)/flows/, src/app/(dashboard)/settings/whatsapp/, src/app/api/webhooks/whatsapp/, src/app/api/cron/, src/types/flows.ts
+SÓ edite: src/lib/flows/, src/lib/whatsapp/, src/lib/sms/, src/components/flows/, src/app/(dashboard)/flows/, src/app/(dashboard)/settings/whatsapp/, src/app/(dashboard)/settings/sms/, src/app/api/webhooks/whatsapp/, src/app/api/webhooks/sms/, src/app/api/cron/, src/types/flows.ts, vercel.json
 
 ---
 
-## MÓDULO A: Flow Builder Canvas + Custom Nodes
+## MÓDULO A: Types + Custom Nodes
 
-Criar src/types/flows.ts:
-```typescript
-export type FlowNodeType = 'trigger' | 'send_email' | 'send_whatsapp' | 'time_delay' | 'conditional' | 'trigger_split'
-export type FlowTriggerType = 'metric' | 'list' | 'segment' | 'date_property'
-export type FlowStatus = 'draft' | 'live' | 'manual' | 'paused'
-export interface TriggerConfig { metric?: string; list_id?: string; segment_id?: string; filters?: Record<string,unknown>[] }
-export interface DelayConfig { value: number; unit: 'minutes' | 'hours' | 'days' | 'weeks' }
-export interface ConditionConfig { type: string; field?: string; operator?: string; value?: unknown }
-export interface EmailActionConfig { template_id?: string; subject?: string }
-export interface WhatsAppActionConfig { message_type: 'text' | 'template'; message?: string; template_name?: string }
-```
+src/types/flows.ts — Tipos completos:
+FlowNodeType = 'trigger' | 'send_email' | 'send_whatsapp' | 'send_sms' | 'time_delay' | 'conditional' | 'trigger_split' | 'update_profile' | 'webhook'
+FlowTriggerType = 'metric' | 'list' | 'segment' | 'date_property'
+FlowStatus = 'draft' | 'live' | 'manual' | 'paused'
+Interfaces para config de cada node: TriggerConfig, DelayConfig, ConditionConfig, EmailActionConfig, WhatsAppActionConfig, SMSActionConfig, WebhookActionConfig
 
-Criar src/components/flows/flow-canvas.tsx:
-- 'use client' com ReactFlowProvider, ReactFlow, MiniMap, Controls, Background
-- Zustand store (ou useState) para nodes e edges
-- onNodesChange, onEdgesChange, onConnect handlers
-- onDrop handler para receber nodes da sidebar
-- nodeTypes registrados: trigger, send_email, send_whatsapp, time_delay, conditional
-- Cada node clicável abre panel de configuração à direita
+src/components/flows/nodes/ — 7 custom nodes. CADA node deve ter:
+- Visual: borda colorida, ícone lucide, label, handles (sourceHandle bottom, targetHandle top)
+- Ao clicar: abre panel de configuração na sidebar direita
+- Tamanho consistente: min-w-[200px], p-4
 
-Criar src/components/flows/flow-sidebar.tsx:
-- 3 grupos: Triggers (Métrica, Lista, Segmento), Ações (Enviar Email, Enviar WhatsApp, Esperar), Lógica (Condição YES/NO)
-- Cada item: ícone lucide + label, draggable com onDragStart setData
+trigger-node.tsx: borda roxo-500, ícone Zap, dropdown tipo trigger. Se metric: dropdown eventos (Placed Order, Started Checkout, Viewed Product, Added to Cart, Order Fulfilled, Customer Created). Se list: dropdown listas. Se segment: dropdown segmentos. 1 handle bottom.
 
-Criar src/components/flows/nodes/trigger-node.tsx:
-- Visual: borda roxa, ícone Zap (lucide), label do trigger type, 1 handle bottom (source)
-- Config panel: select trigger type, se metric: select de eventos (placed_order, started_checkout, etc.)
+email-node.tsx: borda blue-500, ícone Mail, mostra subject ou "Selecionar template". Config: select template, input subject, input preview text. Handles top+bottom.
 
-Criar src/components/flows/nodes/email-node.tsx:
-- Visual: borda azul, ícone Mail, label do subject ou "Selecionar template", handles top+bottom
-- Config: select template (dropdown dos templates da store), input subject, input preview text
+whatsapp-node.tsx: borda green-500 (#25D366), ícone MessageCircle. Config: tipo (texto/template), textarea mensagem ou input template name + params.
 
-Criar src/components/flows/nodes/whatsapp-node.tsx:
-- Visual: borda verde (#25D366), ícone MessageCircle, handles top+bottom
-- Config: select tipo (texto/template), textarea mensagem ou input template name
+sms-node.tsx: borda cyan-500, ícone Smartphone. Config: textarea mensagem (160 chars counter). Handles top+bottom.
 
-Criar src/components/flows/nodes/delay-node.tsx:
-- Visual: borda cinza, ícone Clock, mostra "Esperar 2 horas", handles top+bottom
-- Config: input número + select unidade (minutos/horas/dias/semanas)
+delay-node.tsx: borda gray-400, ícone Clock, mostra "Esperar X horas". Config: input número + select unidade (minutos/horas/dias/semanas).
 
-Criar src/components/flows/nodes/condition-node.tsx:
-- Visual: formato diamond/losango amarelo, ícone GitBranch, 1 handle top, 2 handles bottom (YES verde, NO vermelho)
-- Config: select tipo condição, campo, operador, valor
+condition-node.tsx: borda amber-500, ícone GitBranch. 1 handle top, 2 handles bottom (YES label verde, NO label vermelho). Config: tipo condição (has done event, property equals, total spent >, in list, opened email), campo, operador, valor.
 
-## MÓDULO B: Páginas de Flows
+webhook-node.tsx: borda indigo-500, ícone Globe. Config: URL input, method select (POST/GET), headers JSON editor.
 
-Criar src/app/(dashboard)/flows/page.tsx:
-- Tabela: nome, trigger type, status badge (Live=verde, Draft=cinza, Manual=amarelo), métricas (entered, emails_sent)
-- Botão "Criar Automação" (laranja)
-- Empty state: "Crie sua primeira automação para engajar clientes automaticamente"
+## MÓDULO B: Canvas + Sidebar + Pages
 
-Criar src/app/(dashboard)/flows/new/page.tsx:
-- Form: nome do flow, select trigger type
-- Seção "Ou comece com um template": 5 cards dos templates pré-built:
-  Welcome Series, Carrinho Abandonado, Pós-Compra, Recuperação Boleto, Win-back
-- Ao criar: INSERT flows com flow_definition vazio (só trigger node) → redirect /flows/[id]
+src/components/flows/flow-canvas.tsx — 'use client':
+ReactFlowProvider, ReactFlow com nodeTypes registrados, MiniMap (bottom-right, bg transparente), Controls (bottom-left), Background dots.
+State: nodes e edges com useState ou Zustand.
+onDrop: recebe tipo do node da sidebar, cria novo node nas coordenadas do drop.
+onConnect: cria edge entre nodes. Validar que não conecta a si mesmo.
+Estilo: bg-gray-50.
 
-Criar src/app/(dashboard)/flows/[id]/page.tsx:
-- Layout fullscreen: sidebar esquerda (flow-sidebar) + canvas central (flow-canvas)
-- Header fixo: botão Voltar, nome do flow (editável), toggle status (Draft/Live), botão Salvar
-- Carregar flow do Supabase → deserializar flow_definition JSON → renderizar nodes+edges
-- Salvar: serializar nodes+edges → UPDATE flow_definition
+src/components/flows/flow-sidebar.tsx — Sidebar esquerda do canvas (w-64 border-r bg-white):
+3 seções com Collapsible:
+"Triggers": Métrica (Zap), Lista (List), Segmento (Target)
+"Ações": Enviar Email (Mail), Enviar WhatsApp (MessageCircle), Enviar SMS (Smartphone), Esperar (Clock), Webhook (Globe)
+"Lógica": Condição (GitBranch), Atualizar Perfil (UserCog)
+Cada item: draggable, onDragStart com dataTransfer.setData('nodeType', type). Visual: border rounded-lg p-3 flex items-center gap-2 cursor-grab hover:bg-gray-50.
 
-Criar src/components/flows/flow-templates.ts:
-- 5 objetos com { name, description, category, trigger_type, trigger_config, nodes: [], edges: [] }
-- Nodes já posicionados com coordenadas x,y corretas
-- Welcome: trigger(list) → email1 → delay(2d) → email2 → delay(3d) → email3
-- Abandoned Cart: trigger(started_checkout) → delay(1h) → condition(placed_order?) → NO:email → delay(24h) → whatsapp
-- Post-Purchase: trigger(placed_order) → email_confirm → delay(7d) → condition(fulfilled?) → YES:email_review
-- Boleto Recovery: trigger(placed_order) → condition(payment=pending) → YES:delay(24h) → email → delay(48h) → whatsapp
-- Win-back: trigger(segment) → email1 → delay(7d) → email2_cupom → delay(14d) → whatsapp
+src/components/flows/flow-config-panel.tsx — Panel direita (w-80 border-l bg-white p-4):
+Renderiza config do node selecionado. Switch por node.type. Inputs/selects específicos de cada tipo. Botão "Aplicar" que atualiza o node.data.
 
-## MÓDULO C: Flow Execution Engine
+src/app/(dashboard)/flows/page.tsx — Tabela flows: nome, trigger type, status badge, entered, emails_sent. Botão "Criar Automação". Empty state.
 
-Criar src/lib/flows/engine.ts:
-```typescript
-export async function processEvent(storeId: string, eventType: string, contactId: string, eventData: Record<string,unknown>) {
-  // 1. Buscar flows WHERE store_id AND status='live' AND trigger_type='metric' AND trigger_config->>'metric' = eventType
-  // 2. Para cada flow: verificar se já existe flow_execution ativo para contact+flow
-  // 3. Se não: INSERT flow_execution status='active', current_node_id = primeiro node após trigger
-  // 4. Chamar processNode()
-}
-```
+src/app/(dashboard)/flows/new/page.tsx — Nome input + trigger type select. Seção "Templates Prontos": 8 cards com ícone, nome, descrição curta. Criar → INSERT flows → redirect /flows/[id].
 
-Criar src/lib/flows/actions.ts:
-```typescript
-export async function processNode(executionId: string, nodeId: string) {
-  // Buscar flow_execution + flow.flow_definition
-  // Encontrar node por id no flow_definition.nodes
-  // Switch node.type:
-  //   'send_email': buscar template, importar sendCampaignEmail de lib/email, enviar. Avançar para próximo node.
-  //   'send_whatsapp': importar de lib/whatsapp, enviar. Avançar.
-  //   'time_delay': calcular next_step_at = now + delay. UPDATE execution status='waiting', next_step_at. PARAR (cron continua depois).
-  //   'conditional': chamar evaluateCondition. Se true → seguir edge YES. Se false → edge NO. Avançar.
-  // Após processar: encontrar próximo node via edges. Se existe → processNode recursivo. Se não → status='completed'.
-}
-```
+src/app/(dashboard)/flows/[id]/page.tsx — FULLSCREEN layout:
+Header fixo h-14: ArrowLeft voltar, nome (editável), badge status, toggle Live/Draft, botão Salvar (laranja)
+Body flex: flow-sidebar (w-64) + flow-canvas (flex-1) + flow-config-panel (w-80, só aparece se node selecionado)
+Carregar flow → deserializar flow_definition → setNodes/setEdges
+Salvar: serializar → UPDATE flow_definition
 
-Criar src/lib/flows/conditions.ts:
-- evaluateCondition(condition, contactId, storeId): boolean
-- Tipos: has_placed_order (check events), property_equals (check contacts), total_spent_greater (check contacts.total_spent), in_list (check list_members), opened_email (check events type=email_opened)
+## MÓDULO C: 8 Flow Templates Pré-construídos
 
-Criar src/lib/flows/triggers.ts:
-- matchesTrigger(flow, eventType, eventData): boolean — verifica se evento corresponde ao trigger do flow
+src/components/flows/flow-templates.ts — 8 templates com nodes posicionados:
 
-Criar src/app/api/cron/process-flows/route.ts:
-- GET handler (Vercel Cron)
-- SELECT flow_executions WHERE status='waiting' AND next_step_at <= now() LIMIT 50
-- Para cada: chamar processNode(execution.id, execution.current_node_id)
-- Retornar { processed: count }
+1. Welcome Series: trigger(list) →y100→ email "Boas-vindas" →y250→ delay(2d) →y400→ email "Conheça nossos produtos" →y550→ delay(3d) →y700→ email "Cupom 10% primeira compra"
 
-Criar ou atualizar vercel.json na raiz:
-```json
-{ "crons": [{ "path": "/api/cron/process-flows", "schedule": "* * * * *" }] }
-```
+2. Carrinho Abandonado: trigger(started_checkout) → delay(1h) → condition(placed_order?) → NO: email "Esqueceu algo?" → delay(24h) → email "Última chance!" → delay(48h) → whatsapp "Seu carrinho expira"
 
-## MÓDULO D: WhatsApp Integration
+3. Pós-Compra: trigger(placed_order) → email "Pedido confirmado" → delay(3d) → condition(fulfilled?) → YES: delay(7d) → email "Como foi sua compra? Deixe um review"
 
-Criar src/lib/whatsapp/client.ts:
-- sendText(phone, message, config: {phoneNumberId, accessToken}): POST https://graph.facebook.com/v21.0/{phoneNumberId}/messages com { messaging_product:'whatsapp', to:phone, type:'text', text:{body:message} }
-- sendTemplate(phone, templateName, params, config): POST com type:'template', template:{name, language:{code:'pt_BR'}, components}
+4. Recuperação Boleto: trigger(placed_order) → condition(financial_status=pending) → YES: delay(24h) → email "Lembrete de pagamento" → delay(48h) → sms "Seu boleto vence amanhã" → delay(72h) → whatsapp "Última chance"
 
-Criar src/app/(dashboard)/settings/whatsapp/page.tsx:
-- Form: Phone Number ID, Business Account ID, Access Token (password input)
-- Botão "Testar Conexão" → envia msg teste
-- Status de conexão badge
-- Seguir DESIGN-SYSTEM.md
+5. Win-back: trigger(segment "Em Risco") → email "Sentimos sua falta" → delay(7d) → email "Cupom exclusivo 15%" → delay(14d) → whatsapp "Última chance"
 
-Criar src/app/api/webhooks/whatsapp/route.ts:
-- GET: verificação do webhook Meta (hub.verify_token === WA_WEBHOOK_VERIFY_TOKEN)
-- POST: processar status updates (sent/delivered/read) → UPDATE whatsapp_sends
+6. Review Request: trigger(order_fulfilled) → delay(7d) → email "Conte sua experiência" → delay(5d) → condition(left_review?) → NO: sms "Avalie e ganhe 5% off"
+
+7. VIP Upgrade: trigger(segment "Compradores Recorrentes") → email "Bem-vindo ao Clube VIP" → delay(1d) → email "Seus benefícios exclusivos"
+
+8. Browse Abandonment: trigger(viewed_product) → delay(30min) → condition(added_to_cart?) → NO: email "Vimos que você gostou de {{product_name}}"
+
+Cada template: { name, description, category, icon, trigger_type, trigger_config, nodes: FlowNode[], edges: Edge[] } com coordenadas x,y corretas.
+
+## MÓDULO D: Flow Execution Engine
+
+src/lib/flows/engine.ts — processEvent(storeId, eventType, contactId, eventData):
+1. SELECT flows WHERE store_id AND status='live' AND trigger_type='metric' AND trigger_config->>'metric' = eventType
+2. Para cada flow: verificar se JÁ existe flow_execution ativo (evitar duplicata)
+3. Se não: encontrar primeiro node após trigger via edges → INSERT flow_execution status='active', current_node_id
+4. Chamar processNode(executionId, nodeId)
+
+src/lib/flows/actions.ts — processNode(executionId, nodeId):
+Buscar execution + flow.flow_definition. Encontrar node.
+Switch node.type:
+- 'send_email': importar sendCampaignEmail. Buscar template pelo template_id do node.data. Enviar. Avançar.
+- 'send_whatsapp': importar de lib/whatsapp. Enviar. Avançar.
+- 'send_sms': importar de lib/sms. Enviar. Avançar.
+- 'time_delay': calcular next_step_at. UPDATE execution status='waiting', next_step_at. PARAR.
+- 'conditional': evaluateCondition. Se true → edge YES. Se false → edge NO. Avançar.
+- 'update_profile': UPDATE contacts com propriedade configurada. Avançar.
+- 'webhook': fetch(url, { method, headers, body }). Avançar.
+Avançar = encontrar próximo node via edges → se existe: processNode recursivo. Se não: status='completed'.
+
+src/lib/flows/conditions.ts — evaluateCondition(condition, contactId, storeId): boolean
+Tipos: has_placed_order, has_opened_email, property_equals, total_spent_gt, in_list, in_segment, financial_status_equals
+
+src/lib/flows/triggers.ts — matchesTrigger + findFlowsForEvent
+
+src/app/api/cron/process-flows/route.ts — GET (Vercel Cron 1min):
+SELECT flow_executions WHERE status='waiting' AND next_step_at <= now() LIMIT 50. Para cada: processNode.
+
+## MÓDULO E: WhatsApp + SMS
+
+src/lib/whatsapp/client.ts:
+- sendText(phone, message, config) → POST graph.facebook.com/v21.0/{phoneNumberId}/messages
+- sendTemplate(phone, templateName, params, config) → POST com type template
+
+src/lib/sms/client.ts:
+- sendSMS(phone, message, config) → Para MVP, usar API simples (Twilio ou similar). Criar interface genérica: { send(phone, message): Promise<{id, status}> }
+- Se não configurado, logar warning e não enviar
+
+src/app/(dashboard)/settings/whatsapp/page.tsx — Form: Phone Number ID, Business Account ID, Access Token. Botão testar. Badge status.
+
+src/app/(dashboard)/settings/sms/page.tsx — Form: provider (select Twilio/outro), API credentials. Botão testar.
+
+src/app/api/webhooks/whatsapp/route.ts — GET verify + POST status updates
+src/app/api/webhooks/sms/route.ts — POST delivery receipts
+
+vercel.json atualizar crons se necessário.
 
 ## FINALIZAR
 
-`pnpm build` → corrigir tudo → `git pull origin main && git add -A && git commit -m "feat: flow builder engine whatsapp complete" && git push origin main`
-Se push falhar: `git pull --rebase origin main` e push novamente. NÃO PARE.
+pnpm build → corrigir → git pull --rebase origin main && git add -A && git commit -m "feat: flows whatsapp sms engine" && git push origin main
+NÃO PARE.

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prebuild": "rm -rf .next"
+    "prebuild": "rm -rf .next",
+    "postbuild": "node scripts/fix-missing-client-reference-manifests.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

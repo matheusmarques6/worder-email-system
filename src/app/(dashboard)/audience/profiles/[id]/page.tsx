@@ -171,6 +171,7 @@ export default function ContactDetailPage() {
         .from("list_members")
         .select("*, list:lists(id, name, description)")
         .eq("contact_id", params.id)
+        .eq("store_id", store.id)
         .order("created_at", { ascending: false }),
     ])
 
@@ -209,7 +210,7 @@ export default function ContactDetailPage() {
   if (!contact) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <p className="text-sm text-gray-500 mb-4">Contato nao encontrado.</p>
+        <p className="text-sm text-gray-500 mb-4">Contato não encontrado.</p>
         <Button
           variant="outline"
           onClick={() => router.push("/audience/profiles")}
@@ -517,7 +518,7 @@ export default function ContactDetailPage() {
                   <div className="flex flex-col items-center justify-center py-8">
                     <ListIcon size={48} className="text-gray-300 mb-4" />
                     <p className="text-sm text-gray-500">
-                      Este contato nao pertence a nenhuma lista
+                      Este contato não pertence a nenhuma lista
                     </p>
                   </div>
                 ) : (

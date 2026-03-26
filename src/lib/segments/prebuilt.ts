@@ -18,7 +18,7 @@ export const prebuiltSegments: PrebuiltSegment[] = [
       combinator: "and",
       rules: [
         { field: "consent_email", operator: "=", value: "subscribed" },
-        { field: "event:email_opened", operator: ">=", value: "1" },
+        { field: "event:email_opened", operator: ">=", value: "1:30" },
       ],
     },
   },
@@ -31,7 +31,7 @@ export const prebuiltSegments: PrebuiltSegment[] = [
       combinator: "and",
       rules: [
         { field: "consent_email", operator: "=", value: "subscribed" },
-        { field: "event:email_opened", operator: "=", value: "0" },
+        { field: "event:email_opened", operator: "=", value: "0:90" },
       ],
     },
   },
@@ -80,7 +80,7 @@ export const prebuiltSegments: PrebuiltSegment[] = [
     rules: {
       combinator: "and",
       rules: [
-        { field: "last_order_at", operator: "in_last_days", value: "60" },
+        { field: "last_order_at", operator: "not_in_last_days", value: "60" },
         { field: "total_orders", operator: ">=", value: "1" },
       ],
     },
@@ -117,8 +117,8 @@ export const prebuiltSegments: PrebuiltSegment[] = [
     rules: {
       combinator: "and",
       rules: [
-        { field: "event:started_checkout", operator: ">=", value: "1" },
-        { field: "event:placed_order", operator: "=", value: "0" },
+        { field: "event:started_checkout", operator: ">=", value: "1:7" },
+        { field: "event:placed_order", operator: "=", value: "0:7" },
       ],
     },
   },
@@ -130,7 +130,7 @@ export const prebuiltSegments: PrebuiltSegment[] = [
     rules: {
       combinator: "and",
       rules: [
-        { field: "event:email_opened", operator: ">=", value: "5" },
+        { field: "event:email_opened", operator: ">=", value: "5:30" },
       ],
     },
   },

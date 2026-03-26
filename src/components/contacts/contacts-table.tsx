@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
@@ -66,6 +66,7 @@ export function ContactsTable({
   const searchParams = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchValue, setSearchValue] = useState(search)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
@@ -85,10 +86,12 @@ export function ContactsTable({
   const handleSearch = useCallback(
     (value: string) => {
       setSearchValue(value)
-      const timeout = setTimeout(() => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+      searchTimeoutRef.current = setTimeout(() => {
         updateParams({ search: value, page: "1" })
       }, 400)
-      return () => clearTimeout(timeout)
     },
     [updateParams]
   )
@@ -355,7 +358,7 @@ export function ContactsTable({
                 updateParams({ page: String(page + 1) })
               }
             >
-              Proximo
+              Próximo
               <ChevronRight size={18} />
             </Button>
           </div>

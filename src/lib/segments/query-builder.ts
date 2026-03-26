@@ -4,9 +4,11 @@ export interface EventFilter {
   eventName: string
   operator: string
   value: number
+  timeframeDays?: number
 }
 
 export interface SegmentFilters {
+  combinator: "and" | "or"
   filters: ProfileFilter[]
   eventFilters: EventFilter[]
 }
@@ -31,11 +33,25 @@ function processRule(rule: RuleType): { profileFilter?: ProfileFilter; eventFilt
   const { field, operator, value } = rule
 
   if (isEventField(field)) {
+    const stringValue = String(value)
+    let count: number
+    let timeframeDays: number | undefined
+
+    // Support "count:days" format, e.g. "1:30" means at least 1 in last 30 days
+    if (stringValue.includes(":")) {
+      const [countPart, daysPart] = stringValue.split(":")
+      count = Number(countPart)
+      timeframeDays = Number(daysPart)
+    } else {
+      count = Number(value)
+    }
+
     return {
       eventFilter: {
         eventName: extractEventName(field),
         operator,
-        value: Number(value),
+        value: count,
+        timeframeDays,
       },
     }
   }
@@ -100,6 +116,12 @@ function processRule(rule: RuleType): { profileFilter?: ProfileFilter; eventFilt
       filterValue = new Date(Date.now() - days * 86400000).toISOString()
       break
     }
+    case "not_in_last_days": {
+      method = "lt"
+      const daysAgo = Number(value)
+      filterValue = new Date(Date.now() - daysAgo * 86400000).toISOString()
+      break
+    }
     case "in_last_months": {
       method = "gte"
       const months = Number(value)
@@ -122,7 +144,9 @@ function processRule(rule: RuleType): { profileFilter?: ProfileFilter; eventFilt
 }
 
 function processGroup(group: RuleGroupType): SegmentFilters {
+  const combinator = (group.combinator === "or" ? "or" : "and") as "and" | "or"
   const result: SegmentFilters = {
+    combinator,
     filters: [],
     eventFilters: [],
   }
@@ -154,12 +178,55 @@ export function buildSupabaseQuery(
   return processGroup(query)
 }
 
+function buildFilterString(filter: ProfileFilter): string {
+  switch (filter.method) {
+    case "eq":
+      return `${filter.field}.eq.${filter.value}`
+    case "neq":
+      return `${filter.field}.neq.${filter.value}`
+    case "ilike":
+      return `${filter.field}.ilike.${filter.value}`
+    case "gt":
+      return `${filter.field}.gt.${filter.value}`
+    case "lt":
+      return `${filter.field}.lt.${filter.value}`
+    case "gte":
+      return `${filter.field}.gte.${filter.value}`
+    case "lte":
+      return `${filter.field}.lte.${filter.value}`
+    case "not_is_null":
+      return `${filter.field}.not.is.null`
+    case "is_null":
+      return `${filter.field}.is.null`
+    case "between": {
+      const vals = filter.value as string[]
+      if (vals.length === 2) {
+        return `and(${filter.field}.gte.${vals[0]},${filter.field}.lte.${vals[1]})`
+      }
+      return `${filter.field}.eq.${filter.value}`
+    }
+    default:
+      return `${filter.field}.eq.${filter.value}`
+  }
+}
+
 export function applyProfileFilters(
   supabaseQuery: ReturnType<ReturnType<typeof import("@supabase/supabase-js").createClient>["from"]>,
-  filters: ProfileFilter[]
+  filters: ProfileFilter[],
+  combinator: "and" | "or" = "and"
 ) {
   let q = supabaseQuery
 
+  if (filters.length === 0) return q
+
+  // For OR combinator, use Supabase's .or() method
+  if (combinator === "or") {
+    const orClauses = filters.map(buildFilterString)
+    q = q.or(orClauses.join(","))
+    return q
+  }
+
+  // For AND combinator, chain filters sequentially (default behavior)
   for (const filter of filters) {
     switch (filter.method) {
       case "eq":

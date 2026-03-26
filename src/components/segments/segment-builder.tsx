@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   QueryBuilder,
   type RuleGroupType,
@@ -16,6 +16,7 @@ import {
 } from "react-querybuilder"
 import { Plus, FolderPlus, X } from "lucide-react"
 
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -28,127 +29,141 @@ import {
   SelectLabel,
 } from "@/components/ui/select"
 
-const fields: Field[] = [
-  // Profile properties
-  { name: "email", label: "Email", inputType: "text" },
-  { name: "first_name", label: "Nome", inputType: "text" },
-  { name: "last_name", label: "Sobrenome", inputType: "text" },
-  { name: "phone", label: "Telefone", inputType: "text" },
-  { name: "city", label: "Cidade", inputType: "text" },
-  { name: "state", label: "Estado", inputType: "text" },
-  { name: "country", label: "País", inputType: "text" },
-  { name: "tags", label: "Tags", inputType: "text" },
-  {
-    name: "source",
-    label: "Origem",
-    inputType: "text",
-    valueEditorType: "select",
-    values: [
-      { name: "shopify", label: "Shopify" },
-      { name: "import", label: "Importação" },
-      { name: "form", label: "Formulário" },
-      { name: "api", label: "API" },
-    ],
-  },
-  {
-    name: "consent_email",
-    label: "Consentimento Email",
-    inputType: "text",
-    valueEditorType: "select",
-    values: [
-      { name: "subscribed", label: "Inscrito" },
-      { name: "unsubscribed", label: "Cancelado" },
-      { name: "bounced", label: "Bounced" },
-    ],
-  },
-  {
-    name: "consent_whatsapp",
-    label: "Consentimento WhatsApp",
-    inputType: "text",
-    valueEditorType: "select",
-    values: [
-      { name: "subscribed", label: "Inscrito" },
-      { name: "unsubscribed", label: "Cancelado" },
-      { name: "none", label: "Nenhum" },
-    ],
-  },
-  { name: "total_spent", label: "Total Gasto (R$)", inputType: "number" },
-  { name: "total_orders", label: "Total de Pedidos", inputType: "number" },
-  { name: "avg_order_value", label: "Ticket Médio (R$)", inputType: "number" },
-  { name: "created_at", label: "Data de Cadastro", inputType: "date" },
-  { name: "last_order_at", label: "Último Pedido", inputType: "date" },
-  // Event-based
-  {
-    name: "event:placed_order",
-    label: "Evento: Pedido Realizado",
-    inputType: "number",
-  },
-  {
-    name: "event:started_checkout",
-    label: "Evento: Checkout Iniciado",
-    inputType: "number",
-  },
-  {
-    name: "event:email_opened",
-    label: "Evento: Email Aberto",
-    inputType: "number",
-  },
-  {
-    name: "event:email_clicked",
-    label: "Evento: Email Clicado",
-    inputType: "number",
-  },
-  {
-    name: "event:viewed_product",
-    label: "Evento: Produto Visualizado",
-    inputType: "number",
-  },
-  // List membership
-  {
-    name: "in_list",
-    label: "Está na Lista",
-    inputType: "text",
-    valueEditorType: "select",
-    values: [],
-  },
-  {
-    name: "not_in_list",
-    label: "Não Está na Lista",
-    inputType: "text",
-    valueEditorType: "select",
-    values: [],
-  },
-]
+interface ListOption {
+  name: string
+  label: string
+}
 
-const fieldGroups: OptionGroup<Field>[] = [
-  {
-    label: "Propriedades do Perfil",
-    options: fields.filter(
-      (f) =>
-        !f.name.startsWith("event:") &&
-        f.name !== "in_list" &&
-        f.name !== "not_in_list"
-    ),
-  },
-  {
-    label: "Eventos",
-    options: fields.filter((f) => f.name.startsWith("event:")),
-  },
-  {
-    label: "Listas",
-    options: fields.filter(
-      (f) => f.name === "in_list" || f.name === "not_in_list"
-    ),
-  },
-]
+function buildFields(listOptions: ListOption[]): Field[] {
+  return [
+    // Profile properties
+    { name: "email", label: "Email", inputType: "text" },
+    { name: "first_name", label: "Nome", inputType: "text" },
+    { name: "last_name", label: "Sobrenome", inputType: "text" },
+    { name: "phone", label: "Telefone", inputType: "text" },
+    { name: "city", label: "Cidade", inputType: "text" },
+    { name: "state", label: "Estado", inputType: "text" },
+    { name: "country", label: "País", inputType: "text" },
+    { name: "tags", label: "Tags", inputType: "text" },
+    {
+      name: "source",
+      label: "Origem",
+      inputType: "text",
+      valueEditorType: "select",
+      values: [
+        { name: "shopify", label: "Shopify" },
+        { name: "import", label: "Importação" },
+        { name: "form", label: "Formulário" },
+        { name: "api", label: "API" },
+      ],
+    },
+    {
+      name: "consent_email",
+      label: "Consentimento Email",
+      inputType: "text",
+      valueEditorType: "select",
+      values: [
+        { name: "subscribed", label: "Inscrito" },
+        { name: "unsubscribed", label: "Cancelado" },
+        { name: "bounced", label: "Bounced" },
+      ],
+    },
+    {
+      name: "consent_whatsapp",
+      label: "Consentimento WhatsApp",
+      inputType: "text",
+      valueEditorType: "select",
+      values: [
+        { name: "subscribed", label: "Inscrito" },
+        { name: "unsubscribed", label: "Cancelado" },
+        { name: "none", label: "Nenhum" },
+      ],
+    },
+    { name: "total_spent", label: "Total Gasto (R$)", inputType: "number" },
+    { name: "total_orders", label: "Total de Pedidos", inputType: "number" },
+    { name: "avg_order_value", label: "Ticket Médio (R$)", inputType: "number" },
+    { name: "created_at", label: "Data de Cadastro", inputType: "date" },
+    { name: "last_order_at", label: "Último Pedido", inputType: "date" },
+    // Event-based
+    {
+      name: "event:placed_order",
+      label: "Evento: Pedido Realizado",
+      inputType: "number",
+    },
+    {
+      name: "event:started_checkout",
+      label: "Evento: Checkout Iniciado",
+      inputType: "number",
+    },
+    {
+      name: "event:email_opened",
+      label: "Evento: Email Aberto",
+      inputType: "number",
+    },
+    {
+      name: "event:email_clicked",
+      label: "Evento: Email Clicado",
+      inputType: "number",
+    },
+    {
+      name: "event:viewed_product",
+      label: "Evento: Produto Visualizado",
+      inputType: "number",
+    },
+    // List membership
+    {
+      name: "in_list",
+      label: "Está na Lista",
+      inputType: "text",
+      valueEditorType: "select",
+      values: listOptions.length > 0
+        ? listOptions
+        : [{ name: "", label: "Carregando listas..." }],
+    },
+    {
+      name: "not_in_list",
+      label: "Não Está na Lista",
+      inputType: "text",
+      valueEditorType: "select",
+      values: listOptions.length > 0
+        ? listOptions
+        : [{ name: "", label: "Carregando listas..." }],
+    },
+  ]
+}
+
+function buildFieldGroups(fields: Field[]): OptionGroup<Field>[] {
+  return [
+    {
+      label: "Propriedades do Perfil",
+      options: fields.filter(
+        (f) =>
+          !f.name.startsWith("event:") &&
+          f.name !== "in_list" &&
+          f.name !== "not_in_list"
+      ),
+    },
+    {
+      label: "Eventos",
+      options: fields.filter((f) => f.name.startsWith("event:")),
+    },
+    {
+      label: "Listas",
+      options: fields.filter(
+        (f) => f.name === "in_list" || f.name === "not_in_list"
+      ),
+    },
+  ]
+}
 
 interface OperatorOption {
   name: string
   label: string
 }
 
-function getOperatorsForField(fieldName: string): OperatorOption[] {
-  const field = fields.find((f) => f.name === fieldName)
+function getOperatorsForField(fieldName: string, currentFields?: Field[]): OperatorOption[] {
+  const fieldList = currentFields ?? buildFields([])
+  const field = fieldList.find((f) => f.name === fieldName)
   if (!field) return [{ name: "=", label: "igual a" }]
 
   if (field.name.startsWith("event:") || field.inputType === "number") {

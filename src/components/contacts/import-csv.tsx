@@ -62,7 +62,7 @@ type ContactField =
   | "skip"
 
 const CONTACT_FIELD_LABELS: Record<ContactField, string> = {
-  email: "Email (obrigatorio)",
+  email: "Email (obrigatório)",
   first_name: "Nome",
   last_name: "Sobrenome",
   phone: "Telefone",
@@ -230,14 +230,20 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
         const { data: upsertedContacts } = await supabase
           .from("contacts")
           .upsert(
-            contacts.map((c) => ({
-              store_id: c.store_id,
-              email: c.email,
-              first_name: c.first_name || null,
-              last_name: c.last_name || null,
-              phone: c.phone || null,
-              subscribed: true,
-            })),
+            contacts.map((c) => {
+              const row: Record<string, unknown> = {
+                store_id: c.store_id,
+                email: c.email,
+                first_name: c.first_name || null,
+                last_name: c.last_name || null,
+                phone: c.phone || null,
+                subscribed: true,
+              }
+              if (c.tags) {
+                row.tags = c.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
+              }
+              return row
+            }),
             { onConflict: "store_id,email" }
           )
           .select("id, email")
@@ -430,7 +436,7 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
                   <Check size={24} className="text-green-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  Importacao concluida!
+                  Importação concluída!
                 </h3>
                 <p className="text-sm text-gray-500">
                   {totalRows} contatos foram importados com sucesso.
@@ -443,7 +449,7 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
                 </p>
                 <Progress value={progress} />
                 <p className="text-sm text-gray-500 text-center">
-                  {progress}% concluido
+                  {progress}% concluído
                 </p>
               </div>
             )}
@@ -460,7 +466,7 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
     2: "Preview dos dados",
     3: "Mapear colunas",
     4: "Selecionar lista",
-    5: importing ? "Importando..." : "Concluido",
+    5: importing ? "Importando..." : "Concluído",
   }
 
   return (
@@ -516,7 +522,7 @@ export function ImportCSV({ storeId, onComplete }: ImportCSVProps) {
                   handleImport()
                 }}
               >
-                Iniciar importacao
+                Iniciar importação
                 <ArrowRight size={18} />
               </Button>
             )}

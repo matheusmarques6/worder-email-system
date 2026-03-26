@@ -89,11 +89,8 @@ export async function POST(request: NextRequest) {
     const { data: contact, error: contactError } = await supabaseAdmin
       .from("contacts")
       .upsert(
-        {
-          ...contactData,
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: "email,store_id" }
+        contactData,
+        { onConflict: "email,store_id", ignoreDuplicates: false }
       )
       .select("id")
       .single()
@@ -115,7 +112,8 @@ export async function POST(request: NextRequest) {
             list_id: listId,
             contact_id: contact.id,
             store_id: storeId,
-            subscribed_at: new Date().toISOString(),
+            status: "active",
+            created_at: new Date().toISOString(),
           },
           { onConflict: "list_id,contact_id" }
         )

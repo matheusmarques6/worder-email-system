@@ -34,6 +34,12 @@ interface ListOption {
   label: string
 }
 
+// Module-level references for current fields/groups, updated by the component.
+// This allows react-querybuilder control elements to access current field data
+// without needing custom prop threading.
+let currentFields: Field[] = []
+let currentFieldGroups: OptionGroup<Field>[] = []
+
 function buildFields(listOptions: ListOption[]): Field[] {
   return [
     // Profile properties
@@ -183,6 +189,7 @@ function getOperatorsForField(fieldName: string, currentFields?: Field[]): Opera
       { name: "before", label: "antes de" },
       { name: "after", label: "depois de" },
       { name: "in_last_days", label: "nos últimos X dias" },
+      { name: "not_in_last_days", label: "há mais de X dias" },
       { name: "in_last_months", label: "nos últimos X meses" },
     ]
   }
@@ -216,7 +223,7 @@ function CustomFieldSelector(props: FieldSelectorProps) {
         <SelectValue placeholder="Selecione o campo" />
       </SelectTrigger>
       <SelectContent>
-        {fieldGroups.map((group) => (
+        {currentFieldGroups.map((group) => (
           <SelectGroup key={group.label}>
             <SelectLabel className="text-xs text-gray-400 uppercase tracking-wider">
               {group.label}
@@ -236,7 +243,7 @@ function CustomFieldSelector(props: FieldSelectorProps) {
 // Custom operator selector
 function CustomOperatorSelector(props: OperatorSelectorProps) {
   const { value, handleOnChange, field } = props
-  const operators = getOperatorsForField(field as string)
+  const operators = getOperatorsForField(field as string, currentFields)
 
   return (
     <Select value={value as string} onValueChange={handleOnChange}>
@@ -264,7 +271,7 @@ function CustomValueEditor(props: ValueEditorProps) {
   }
 
   // Select editor for fields with predefined values
-  const fieldDef = fields.find((f) => f.name === field)
+  const fieldDef = currentFields.find((f) => f.name === field)
   if (
     fieldDef?.valueEditorType === "select" &&
     fieldDef.values &&
@@ -311,10 +318,11 @@ function CustomValueEditor(props: ValueEditorProps) {
     fieldDef?.inputType === "number" ||
     fieldDef?.name.startsWith("event:") ||
     operator === "in_last_days" ||
+    operator === "not_in_last_days" ||
     operator === "in_last_months"
   ) {
     const placeholder =
-      operator === "in_last_days"
+      operator === "in_last_days" || operator === "not_in_last_days"
         ? "Dias"
         : operator === "in_last_months"
           ? "Meses"
@@ -446,9 +454,38 @@ function CustomRemoveGroupAction(props: ActionWithRulesAndAddersProps) {
 interface SegmentBuilderProps {
   query: RuleGroupType
   onQueryChange: (query: RuleGroupType) => void
+  storeId: string
 }
 
-export function SegmentBuilder({ query, onQueryChange }: SegmentBuilderProps) {
+export function SegmentBuilder({ query, onQueryChange, storeId }: SegmentBuilderProps) {
+  const [listOptions, setListOptions] = useState<ListOption[]>([])
+
+  useEffect(() => {
+    if (!storeId) return
+
+    const supabase = createClient()
+    supabase
+      .from("lists")
+      .select("id, name")
+      .eq("store_id", storeId)
+      .order("name")
+      .then(({ data }) => {
+        if (data) {
+          setListOptions(
+            data.map((list: { id: string; name: string }) => ({
+              name: list.id,
+              label: list.name,
+            }))
+          )
+        }
+      })
+  }, [storeId])
+
+  // Update module-level refs so control elements can access current data
+  const fields = buildFields(listOptions)
+  currentFields = fields
+  currentFieldGroups = buildFieldGroups(fields)
+
   const handleQueryChange = useCallback(
     (newQuery: RuleGroupType) => {
       onQueryChange(newQuery)
@@ -481,7 +518,7 @@ export function SegmentBuilder({ query, onQueryChange }: SegmentBuilderProps) {
           rule: "flex items-center gap-2 flex-wrap bg-white rounded-lg border border-gray-100 p-3",
         }}
         getOperators={(field) =>
-          getOperatorsForField(field).map((op) => ({
+          getOperatorsForField(field, fields).map((op) => ({
             name: op.name,
             label: op.label,
           }))

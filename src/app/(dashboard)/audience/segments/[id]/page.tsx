@@ -231,7 +231,7 @@ export default function SegmentDetailPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Condições
             </h2>
-            <SegmentBuilder query={query} onQueryChange={setQuery} />
+            <SegmentBuilder query={query} onQueryChange={setQuery} storeId={store?.id ?? ""} />
           </div>
         </div>
 

@@ -5,7 +5,7 @@ import type { RuleGroupType } from "react-querybuilder"
 import { createClient } from "@/lib/supabase/client"
 import { buildSupabaseQuery, applyProfileFilters } from "@/lib/segments/query-builder"
 import type { ProfileFilter } from "@/lib/segments/query-builder"
-import { Users } from "lucide-react"
+import { Users, AlertCircle } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -39,6 +39,7 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
   const [count, setCount] = useState<number>(0)
   const [contacts, setContacts] = useState<PreviewContact[]>([])
   const [loading, setLoading] = useState(false)
+  const [hasEventFilters, setHasEventFilters] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
     if (!rules || !storeId || rules.rules.length === 0) {
       setCount(0)
       setContacts([])
+      setHasEventFilters(false)
       setLoading(false)
       return
     }
@@ -58,7 +60,9 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
     timeoutRef.current = setTimeout(async () => {
       try {
         const supabase = createClient()
-        const { filters } = buildSupabaseQuery(rules, storeId)
+        const { filters, eventFilters, combinator } = buildSupabaseQuery(rules, storeId)
+
+        setHasEventFilters(eventFilters.length > 0)
 
         // Count query
         let countQuery = supabase
@@ -68,7 +72,8 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
 
         countQuery = applyProfileFilters(
           countQuery,
-          filters as ProfileFilter[]
+          filters as ProfileFilter[],
+          combinator
         )
 
         const { count: totalCount } = await countQuery
@@ -82,7 +87,8 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
 
         sampleQuery = applyProfileFilters(
           sampleQuery,
-          filters as ProfileFilter[]
+          filters as ProfileFilter[],
+          combinator
         )
 
         const { data: sampleContacts } = await sampleQuery
@@ -136,6 +142,15 @@ export function SegmentPreview({ rules, storeId }: SegmentPreviewProps) {
           <p className="text-sm text-gray-500 mt-1">
             {count === 1 ? "contato encontrado" : "contatos encontrados"}
           </p>
+
+          {hasEventFilters && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <AlertCircle className="h-[18px] w-[18px] text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                Este segmento contém filtros de evento. A contagem exibida é aproximada e considera apenas filtros de perfil. A contagem final ao salvar incluirá todos os filtros.
+              </p>
+            </div>
+          )}
 
           {contacts.length > 0 && (
             <div className="mt-6 space-y-3 border-t border-gray-100 pt-4">

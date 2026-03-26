@@ -59,10 +59,31 @@ export interface Segment {
   id: string
   store_id: string
   name: string
+  description: string | null
   rules: string | null
+  is_prebuilt: boolean
   contact_count: number
   created_at: string
   updated_at: string
+}
+
+export interface List {
+  id: string
+  store_id: string
+  name: string
+  description: string | null
+  opt_in_type: "single" | "double"
+  created_at: string
+  updated_at: string
+}
+
+export interface ListMember {
+  id: string
+  list_id: string
+  contact_id: string
+  status: "active" | "unsubscribed"
+  created_at: string
+  contact?: Contact
 }
 
 export interface EmailSend {

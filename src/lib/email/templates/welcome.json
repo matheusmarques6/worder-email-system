@@ -1,0 +1,60 @@
+{
+  "counters": { "u_row": 4, "u_column": 4, "u_content_text": 4, "u_content_image": 1, "u_content_button": 1 },
+  "body": {
+    "rows": [
+      {
+        "cells": [1],
+        "columns": [{
+          "contents": [{
+            "type": "text",
+            "values": { "text": "<h1 style=\"text-align:center;color:#F97316;\">Bem-vindo(a), {{first_name}}!</h1>" }
+          }]
+        }],
+        "values": { "backgroundColor": "#ffffff", "padding": "30px 20px 10px" }
+      },
+      {
+        "cells": [1],
+        "columns": [{
+          "contents": [{
+            "type": "text",
+            "values": { "text": "<p style=\"text-align:center;font-size:16px;color:#333;\">Estamos muito felizes em ter você com a gente na <strong>{{store_name}}</strong>! Preparamos ofertas exclusivas para novos clientes.</p>" }
+          }]
+        }],
+        "values": { "backgroundColor": "#ffffff", "padding": "10px 20px" }
+      },
+      {
+        "cells": [1],
+        "columns": [{
+          "contents": [{
+            "type": "button",
+            "values": {
+              "text": "Conhecer a Loja",
+              "href": "{{store_url}}",
+              "backgroundColor": "#F97316",
+              "color": "#ffffff",
+              "borderRadius": "8px",
+              "padding": "12px 30px",
+              "textAlign": "center"
+            }
+          }]
+        }],
+        "values": { "backgroundColor": "#ffffff", "padding": "10px 20px 30px" }
+      },
+      {
+        "cells": [1],
+        "columns": [{
+          "contents": [{
+            "type": "text",
+            "values": { "text": "<p style=\"text-align:center;font-size:12px;color:#999;\">© {{store_name}} | <a href=\"{{unsubscribe_url}}\">Descadastrar</a></p>" }
+          }]
+        }],
+        "values": { "backgroundColor": "#f5f5f5", "padding": "20px" }
+      }
+    ],
+    "values": {
+      "backgroundColor": "#f5f5f5",
+      "contentWidth": "600px",
+      "fontFamily": { "label": "DM Sans", "value": "'DM Sans',sans-serif" }
+    }
+  }
+}

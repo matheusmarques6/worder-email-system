@@ -9,6 +9,10 @@ export interface Store {
   sender_name: string | null;
   sender_email: string | null;
   reply_to: string | null;
+  settings: {
+    onboarding_step?: number;
+    onboarding_complete?: boolean;
+  } | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Users, UserPlus, Trash2, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase/client"
 import {
   type StoreUser,
   type UserRole,
@@ -16,6 +17,36 @@ interface TeamMembersProps {
 
 export function TeamMembers({ storeId }: TeamMembersProps) {
   const [members, setMembers] = useState<StoreUser[]>([])
+
+  useEffect(() => {
+    if (!storeId) return
+
+    const supabase = createClient()
+
+    async function fetchMembers() {
+      const { data, error } = await supabase
+        .from("store_users")
+        .select("*")
+        .eq("store_id", storeId)
+
+      if (!error && data) {
+        const mapped: StoreUser[] = data.map((row) => ({
+          id: row.id as string,
+          store_id: row.store_id as string,
+          user_id: (row.user_id as string) ?? null,
+          name: (row.name as string) ?? null,
+          email: row.email as string,
+          role: row.role as UserRole,
+          invite_token: (row.invite_token as string) ?? null,
+          invited_at: row.invited_at as string,
+          accepted_at: (row.accepted_at as string) ?? null,
+        }))
+        setMembers(mapped)
+      }
+    }
+
+    fetchMembers()
+  }, [storeId])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteRole, setInviteRole] = useState<UserRole>("viewer")

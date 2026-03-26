@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   DollarSign,
   Mail,
@@ -21,6 +21,14 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { MetricCard } from "@/components/dashboard/metric-card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useStore } from "@/hooks/use-store"
+import type {
+  DashboardMetrics,
+  DayMetric,
+  TopCampaign,
+  TopFlow,
+} from "@/lib/analytics/metrics"
 
 type Period = "7d" | "30d" | "90d"
 
@@ -30,27 +38,66 @@ const periodLabels: Record<Period, string> = {
   "90d": "90 dias",
 }
 
-const emailsData: { day: string; sent: number; opened: number; clicked: number }[] = []
-const revenueData: { week: string; revenue: number }[] = []
-const topCampaigns: {
-  id: string
-  name: string
-  sent: number
-  open_rate: number
-  click_rate: number
-  revenue: number
-}[] = []
-const topFlows: {
-  id: string
-  name: string
-  trigger_type: string
-  entered: number
-  emails_sent: number
-  revenue: number
-}[] = []
+const periodDays: Record<Period, number> = {
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+}
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("30d")
+  const { store, loading: storeLoading } = useStore()
+
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [emailsData, setEmailsData] = useState<DayMetric[]>([])
+  const [revenueData, setRevenueData] = useState<{ week: string; revenue: number }[]>([])
+  const [topCampaigns, setTopCampaigns] = useState<TopCampaign[]>([])
+  const [topFlows, setTopFlows] = useState<TopFlow[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
+
+  useEffect(() => {
+    if (!store) return
+
+    let cancelled = false
+    setDataLoading(true)
+
+    async function fetchData() {
+      const {
+        getDashboardMetrics,
+        getEmailsOverTime,
+        getRevenueAttribution,
+        getTopCampaigns,
+        getTopFlows,
+      } = await import("@/lib/analytics/metrics")
+
+      const days = periodDays[period]
+
+      const [dashMetrics, emails, revenue, campaigns, flows] = await Promise.all([
+        getDashboardMetrics(store!.id, days),
+        getEmailsOverTime(store!.id, days),
+        getRevenueAttribution(store!.id, days),
+        getTopCampaigns(store!.id, 5),
+        getTopFlows(store!.id, 5),
+      ])
+
+      if (cancelled) return
+
+      setMetrics(dashMetrics)
+      setEmailsData(emails)
+      setRevenueData(revenue)
+      setTopCampaigns(campaigns)
+      setTopFlows(flows)
+      setDataLoading(false)
+    }
+
+    fetchData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [store, period])
+
+  const loading = storeLoading || dataLoading
 
   return (
     <div className="space-y-6">
@@ -81,26 +128,37 @@ export default function AnalyticsPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          label="Revenue Atribuído"
-          value="R$ 0,00"
-          icon={DollarSign}
-        />
-        <MetricCard
-          label="Emails Enviados"
-          value="0"
-          icon={Mail}
-        />
-        <MetricCard
-          label="Taxa Abertura Média"
-          value="0%"
-          icon={Eye}
-        />
-        <MetricCard
-          label="Taxa Clique Média"
-          value="0%"
-          icon={MousePointerClick}
-        />
+        {loading ? (
+          <>
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+          </>
+        ) : (
+          <>
+            <MetricCard
+              label="Revenue Atribuído"
+              value={`R$ ${(metrics?.total_revenue ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              icon={DollarSign}
+            />
+            <MetricCard
+              label="Emails Enviados"
+              value={(metrics?.emails_sent ?? 0).toLocaleString("pt-BR")}
+              icon={Mail}
+            />
+            <MetricCard
+              label="Taxa Abertura Média"
+              value={`${(metrics?.avg_open_rate ?? 0).toFixed(1)}%`}
+              icon={Eye}
+            />
+            <MetricCard
+              label="Taxa Clique Média"
+              value={`${(metrics?.avg_click_rate ?? 0).toFixed(1)}%`}
+              icon={MousePointerClick}
+            />
+          </>
+        )}
       </div>
 
       {/* Charts */}
@@ -113,7 +171,9 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-500 mb-4">
             Enviados, abertos e clicados
           </p>
-          {emailsData.length > 0 ? (
+          {loading ? (
+            <Skeleton className="h-72 rounded-lg" />
+          ) : emailsData.length > 0 ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={emailsData}>
@@ -173,7 +233,9 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-500 mb-4">
             Receita atribuída aos envios
           </p>
-          {revenueData.length > 0 ? (
+          {loading ? (
+            <Skeleton className="h-72 rounded-lg" />
+          ) : revenueData.length > 0 ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueData}>
@@ -219,7 +281,15 @@ export default function AnalyticsPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Top Campanhas
           </h2>
-          {topCampaigns.length > 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+            </div>
+          ) : topCampaigns.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -282,7 +352,15 @@ export default function AnalyticsPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Top Automações
           </h2>
-          {topFlows.length > 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+              <Skeleton className="h-8 rounded" />
+            </div>
+          ) : topFlows.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

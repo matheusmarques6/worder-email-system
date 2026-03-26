@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { MousePointerClick, ExternalLink } from "lucide-react"
 
 interface ClickMapEntry {
@@ -13,8 +14,43 @@ interface ClickMapProps {
 }
 
 export function ClickMap({ campaignId }: ClickMapProps) {
-  // For now, use empty array - will be replaced with real data
-  const entries: ClickMapEntry[] = []
+  const [entries, setEntries] = useState<ClickMapEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchClickMap() {
+      setLoading(true)
+      try {
+        const { getClickMap } = await import("@/lib/analytics/heatmap")
+        const data = await getClickMap(campaignId)
+        setEntries(data)
+      } catch {
+        setEntries([])
+      }
+      setLoading(false)
+    }
+
+    fetchClickMap()
+  }, [campaignId])
+
+  if (loading) {
+    return (
+      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Mapa de Cliques
+        </h2>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse flex items-center gap-4">
+              <div className="h-4 bg-gray-200 rounded w-2/5" />
+              <div className="h-4 bg-gray-200 rounded w-16" />
+              <div className="h-4 bg-gray-200 rounded w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">

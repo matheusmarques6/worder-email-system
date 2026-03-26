@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Plus, Mail } from "lucide-react"
 import CampaignTable from "@/components/campaigns/campaign-table"
 import type { CampaignRow } from "@/components/campaigns/campaign-table"
 import { cn } from "@/lib/utils"
+import { useStore } from "@/hooks/use-store"
+import { createClient } from "@/lib/supabase/client"
 
 // Tab definitions for filtering campaigns
 const tabs = [
@@ -27,9 +29,39 @@ const statusFilterMap: Record<TabKey, CampaignRow["status"][] | null> = {
 
 export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all")
+  const [campaigns, setCampaigns] = useState<CampaignRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const { store } = useStore()
 
-  // Empty array for now — will be replaced with real data later
-  const campaigns: CampaignRow[] = []
+  useEffect(() => {
+    if (!store?.id) return
+
+    const supabase = createClient()
+
+    async function fetchCampaigns() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("campaigns")
+        .select("id, name, status, created_at, sent_at, stats")
+        .eq("store_id", store!.id)
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        const rows: CampaignRow[] = data.map((c) => ({
+          id: c.id as string,
+          name: c.name as string,
+          status: c.status as CampaignRow["status"],
+          created_at: c.created_at as string,
+          sent_at: (c.sent_at as string) ?? null,
+          stats: (c.stats as CampaignRow["stats"]) ?? null,
+        }))
+        setCampaigns(rows)
+      }
+      setLoading(false)
+    }
+
+    fetchCampaigns()
+  }, [store?.id])
 
   // Filter campaigns based on the active tab
   const filteredCampaigns =
@@ -80,8 +112,19 @@ export default function CampaignsPage() {
         ))}
       </div>
 
-      {/* Content: table or empty state */}
-      {filteredCampaigns.length > 0 ? (
+      {/* Content: loading skeleton, table, or empty state */}
+      {loading ? (
+        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse flex items-center gap-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="h-4 bg-gray-200 rounded w-1/6" />
+              <div className="h-4 bg-gray-200 rounded w-1/6" />
+              <div className="h-4 bg-gray-200 rounded w-1/5" />
+            </div>
+          ))}
+        </div>
+      ) : filteredCampaigns.length > 0 ? (
         <CampaignTable
           campaigns={filteredCampaigns}
           onDelete={handleDelete}

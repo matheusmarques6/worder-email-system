@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Check,
   ChevronLeft,
@@ -12,6 +12,7 @@ import {
   Plus,
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase/client"
 
 interface CampaignWizardProps {
   storeId: string
@@ -42,11 +43,38 @@ interface CampaignFormData {
 
 const STEPS = ["Informações", "Destinatários", "Conteúdo", "Revisar"] as const
 
+interface SelectOption {
+  id: string
+  name: string
+  count?: number
+}
+
 export function CampaignWizard({ storeId }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [tagInput, setTagInput] = useState("")
   const [showTestEmailModal, setShowTestEmailModal] = useState(false)
   const [testEmail, setTestEmail] = useState("")
+  const [lists, setLists] = useState<SelectOption[]>([])
+  const [segments, setSegments] = useState<SelectOption[]>([])
+  const [templates, setTemplates] = useState<SelectOption[]>([])
+
+  useEffect(() => {
+    if (!storeId) return
+    const supabase = createClient()
+
+    async function fetchOptions() {
+      const [listsRes, segmentsRes, templatesRes] = await Promise.all([
+        supabase.from("lists").select("id, name, member_count").eq("store_id", storeId),
+        supabase.from("segments").select("id, name, contact_count").eq("store_id", storeId),
+        supabase.from("templates").select("id, name").eq("store_id", storeId).eq("type", "email"),
+      ])
+      setLists((listsRes.data ?? []).map((l) => ({ id: l.id, name: l.name, count: l.member_count })))
+      setSegments((segmentsRes.data ?? []).map((s) => ({ id: s.id, name: s.name, count: s.contact_count })))
+      setTemplates((templatesRes.data ?? []).map((t) => ({ id: t.id, name: t.name })))
+    }
+
+    fetchOptions()
+  }, [storeId])
 
   const [formData, setFormData] = useState<CampaignFormData>({
     name: "",
@@ -196,13 +224,14 @@ export function CampaignWizard({ storeId }: CampaignWizardProps) {
           />
         )}
         {currentStep === 1 && (
-          <StepDestinatarios formData={formData} updateField={updateField} />
+          <StepDestinatarios formData={formData} updateField={updateField} lists={lists} segments={segments} />
         )}
         {currentStep === 2 && (
           <StepConteudo
             formData={formData}
             updateField={updateField}
             onSendTest={() => setShowTestEmailModal(true)}
+            templates={templates}
           />
         )}
         {currentStep === 3 && (
@@ -454,14 +483,23 @@ function StepInformacoes({
 function StepDestinatarios({
   formData,
   updateField,
+  lists,
+  segments,
 }: {
   formData: CampaignFormData
   updateField: <K extends keyof CampaignFormData>(
     key: K,
     value: CampaignFormData[K]
   ) => void
+  lists: SelectOption[]
+  segments: SelectOption[]
 }) {
-  const contactCount = 0
+  const selectedList = lists.find((l) => l.id === formData.listId)
+  const selectedSegment = segments.find((s) => s.id === formData.segmentId)
+  const contactCount =
+    formData.recipientType === "list"
+      ? selectedList?.count ?? 0
+      : selectedSegment?.count ?? 0
 
   return (
     <div className="space-y-6">
@@ -506,7 +544,15 @@ function StepDestinatarios({
             onChange={(e) => updateField("listId", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           >
-            <option value="">Nenhuma lista disponível</option>
+            <option value="">Selecione uma lista</option>
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} ({l.count ?? 0} contatos)
+              </option>
+            ))}
+            {lists.length === 0 && (
+              <option value="" disabled>Nenhuma lista disponível</option>
+            )}
           </select>
         </div>
       ) : (
@@ -519,7 +565,15 @@ function StepDestinatarios({
             onChange={(e) => updateField("segmentId", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           >
-            <option value="">Nenhum segmento disponível</option>
+            <option value="">Selecione um segmento</option>
+            {segments.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.count ?? 0} contatos)
+              </option>
+            ))}
+            {segments.length === 0 && (
+              <option value="" disabled>Nenhum segmento disponível</option>
+            )}
           </select>
         </div>
       )}
@@ -576,6 +630,7 @@ function StepConteudo({
   formData,
   updateField,
   onSendTest,
+  templates,
 }: {
   formData: CampaignFormData
   updateField: <K extends keyof CampaignFormData>(
@@ -583,6 +638,7 @@ function StepConteudo({
     value: CampaignFormData[K]
   ) => void
   onSendTest: () => void
+  templates: SelectOption[]
 }) {
   return (
     <div className="space-y-6">
@@ -598,7 +654,15 @@ function StepConteudo({
           onChange={(e) => updateField("templateId", e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
         >
-          <option value="">Nenhum template disponível</option>
+          <option value="">Selecione um template</option>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+          {templates.length === 0 && (
+            <option value="" disabled>Nenhum template disponível</option>
+          )}
         </select>
       </div>
 

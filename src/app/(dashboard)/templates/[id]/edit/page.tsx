@@ -1,80 +1,193 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
-import { EmailEditorWrapper } from "@/components/editor/email-editor";
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ArrowLeft, Send } from "lucide-react";
-import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import type { Template } from "@/types";
+import type { EmailEditorHandle } from "@/components/editor/email-editor";
+
+const EmailEditorWrapper = dynamic(
+  () =>
+    import("@/components/editor/email-editor").then(
+      (mod) => mod.EmailEditorWrapper
+    ),
+  { ssr: false, loading: () => <div className="flex-1 bg-gray-50" /> }
+);
 
 export default function EditTemplatePage() {
+  const params = useParams();
+  const editorRef = useRef<EmailEditorHandle>(null);
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [showTestInput, setShowTestInput] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
-  const handleSave = async (html: string, json: Record<string, unknown>) => {
-    // In production, save to Supabase
-    console.log("Saving template:", { html: html.length, json });
-    toast.success("Template salvo com sucesso!");
-  };
+  useEffect(() => {
+    async function fetchTemplate() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("templates")
+        .select("*")
+        .eq("id", params.id)
+        .single();
 
-  const handleSendTest = async () => {
-    if (!testEmail) {
-      toast.error("Informe um email para enviar o teste.");
+      if (data) {
+        setTemplate(data as Template);
+        setName(data.name);
+      }
+    }
+
+    fetchTemplate();
+  }, [params.id]);
+
+  const handleSave = useCallback(
+    async (html: string, designJson: Record<string, unknown>) => {
+      setSaving(true);
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("templates")
+        .update({
+          name,
+          html,
+          design_json: designJson,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", params.id);
+
+      if (error) {
+        toast.error("Erro ao salvar template");
+      } else {
+        toast.success("Template salvo!");
+      }
+      setSaving(false);
+    },
+    [name, params.id]
+  );
+
+  const handleSendTest = useCallback(() => {
+    if (!testEmail.trim()) {
+      toast.error("Digite um email para teste");
       return;
     }
-    // In production, call API to send test email
-    toast.success(`Email de teste enviado para ${testEmail}`);
-  };
+
+    setSendingTest(true);
+    editorRef.current?.getHtml(async (html) => {
+      try {
+        const response = await fetch("/api/campaigns/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: testEmail.trim(),
+            subject: `[TESTE] ${name || "Template"}`,
+            html,
+          }),
+        });
+
+        if (response.ok) {
+          toast.success(`Email de teste enviado para ${testEmail}`);
+          setShowTestInput(false);
+          setTestEmail("");
+        } else {
+          toast.error("Erro ao enviar email de teste");
+        }
+      } catch {
+        toast.error("Erro ao enviar email de teste");
+      }
+      setSendingTest(false);
+    });
+  }, [testEmail, name]);
+
+  if (!template) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+      <header className="flex h-14 items-center justify-between border-b border-gray-200 px-4">
         <div className="flex items-center gap-3">
           <Link href="/templates">
             <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Voltar
+              <ArrowLeft size={16} />
             </Button>
           </Link>
-          <span className="text-sm font-medium text-gray-900">
-            Editar Template
-          </span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border-none bg-transparent text-sm font-medium text-gray-900 outline-none focus:ring-0"
+            placeholder="Nome do template"
+          />
         </div>
         <div className="flex items-center gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="secondary" size="sm">
-                <Send className="mr-1 h-4 w-4" />
-                Enviar Teste
+          {showTestInput ? (
+            <div className="flex items-center gap-2">
+              <Input
+                type="email"
+                placeholder="email@teste.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="h-8 w-56 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendTest();
+                  if (e.key === "Escape") setShowTestInput(false);
+                }}
+                autoFocus
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSendTest}
+                disabled={sendingTest}
+              >
+                {sendingTest ? "Enviando..." : "Enviar"}
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Enviar email de teste</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <Input
-                  placeholder="email@exemplo.com"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                />
-                <Button onClick={handleSendTest} className="w-full">
-                  Enviar teste
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTestInput(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTestInput(true)}
+            >
+              <Send size={14} className="mr-1" />
+              Enviar Teste
+            </Button>
+          )}
+          <Button
+            size="sm"
+            disabled={saving}
+            onClick={() => editorRef.current?.exportHtml()}
+          >
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
         </div>
-      </div>
+      </header>
       <div className="flex-1">
-        <EmailEditorWrapper onSave={handleSave} />
+        <EmailEditorWrapper
+          ref={editorRef}
+          designJson={template.design_json as Record<string, unknown> | undefined}
+          onSave={handleSave}
+          height="100%"
+        />
       </div>
     </div>
   );

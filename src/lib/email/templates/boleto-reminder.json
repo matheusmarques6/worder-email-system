@@ -1,23 +1,23 @@
 {
   "counters": {
-    "u_row": 5,
-    "u_column": 6,
-    "u_content_text": 5,
+    "u_row": 4,
+    "u_column": 4,
+    "u_content_text": 3,
     "u_content_button": 1,
-    "u_content_image": 2
+    "u_content_image": 1
   },
   "body": {
-    "id": "newsletter_body",
+    "id": "boleto_body",
     "rows": [
       {
-        "id": "nl_row_1",
+        "id": "bol_row_1",
         "cells": [1],
         "columns": [
           {
-            "id": "nl_col_1",
+            "id": "bol_col_1",
             "contents": [
               {
-                "id": "nl_img_1",
+                "id": "bol_img_1",
                 "type": "image",
                 "values": {
                   "containerPadding": "20px 10px",
@@ -83,14 +83,14 @@
         }
       },
       {
-        "id": "nl_row_2",
+        "id": "bol_row_2",
         "cells": [1],
         "columns": [
           {
-            "id": "nl_col_2",
+            "id": "bol_col_2",
             "contents": [
               {
-                "id": "nl_txt_1",
+                "id": "bol_txt_1",
                 "type": "text",
                 "values": {
                   "containerPadding": "30px 30px 10px",
@@ -106,10 +106,73 @@
                   },
                   "hideDesktop": false,
                   "displayCondition": null,
-                  "text": "<h1 style=\"font-size:24px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Novidades da {{store_name}}</h1><p style=\"font-size:14px;color:#999999;font-family:'DM Sans',Arial,sans-serif;margin-top:8px;\">As melhores ofertas e conteúdos da semana</p>",
+                  "text": "<h1 style=\"font-size:24px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Seu boleto vence em breve!</h1>",
                   "_meta": {
                     "htmlID": "u_content_text_1",
                     "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "bol_txt_2",
+                "type": "text",
+                "values": {
+                  "containerPadding": "10px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;\">Olá {{first_name}}, este é um lembrete sobre o boleto do seu pedido.</p><div style=\"font-size:14px;color:#333333;font-family:'DM Sans',Arial,sans-serif;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:16px;margin:12px auto;\"><p style=\"margin-bottom:4px;\">Pedido: <strong>{{order_number}}</strong></p><p style=\"font-weight:600;font-size:18px;color:#1A1D21;\">Valor: {{order_total}}</p></div><p style=\"font-size:14px;color:#D97706;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Pague antes do vencimento para garantir seu pedido!</p>",
+                  "_meta": {
+                    "htmlID": "u_content_text_2",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "bol_btn_1",
+                "type": "button",
+                "values": {
+                  "containerPadding": "20px 30px 30px",
+                  "anchor": "",
+                  "href": {
+                    "name": "web",
+                    "values": {
+                      "href": "{{order_tracking_url}}",
+                      "target": "_blank"
+                    }
+                  },
+                  "buttonColors": {
+                    "color": "#FFFFFF",
+                    "backgroundColor": "#F97316",
+                    "hoverColor": "#FFFFFF",
+                    "hoverBackgroundColor": "#EA580C"
+                  },
+                  "size": {
+                    "autoWidth": false,
+                    "width": "50%"
+                  },
+                  "textAlign": "center",
+                  "lineHeight": "120%",
+                  "padding": "14px 28px",
+                  "border": {},
+                  "borderRadius": "8px",
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<span style=\"font-size:14px;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Ver Boleto</span>",
+                  "calculatedWidth": 285,
+                  "calculatedHeight": 44,
+                  "_meta": {
+                    "htmlID": "u_content_button_1",
+                    "htmlClassNames": "u_content_button"
                   }
                 }
               }
@@ -152,47 +215,19 @@
         }
       },
       {
-        "id": "nl_row_3",
-        "cells": [1, 1],
+        "id": "bol_row_3",
+        "cells": [1],
         "columns": [
           {
-            "id": "nl_col_3",
+            "id": "bol_col_3",
             "contents": [
               {
-                "id": "nl_img_2",
-                "type": "image",
+                "id": "bol_txt_3",
+                "type": "text",
                 "values": {
-                  "containerPadding": "10px",
+                  "containerPadding": "20px 30px",
                   "anchor": "",
-                  "src": {
-                    "url": "https://via.placeholder.com/280x200/FFF7ED/F97316?text=Destaque",
-                    "width": 280,
-                    "height": 200
-                  },
                   "textAlign": "center",
-                  "altText": "Destaque da semana",
-                  "action": {
-                    "name": "web",
-                    "values": {
-                      "href": "{{store_url}}",
-                      "target": "_blank"
-                    }
-                  },
-                  "hideDesktop": false,
-                  "displayCondition": null,
-                  "_meta": {
-                    "htmlID": "u_content_image_2",
-                    "htmlClassNames": "u_content_image"
-                  }
-                }
-              },
-              {
-                "id": "nl_txt_2",
-                "type": "text",
-                "values": {
-                  "containerPadding": "10px",
-                  "anchor": "",
-                  "textAlign": "left",
                   "lineHeight": "160%",
                   "linkStyle": {
                     "inherit": true,
@@ -203,45 +238,7 @@
                   },
                   "hideDesktop": false,
                   "displayCondition": null,
-                  "text": "<h3 style=\"font-size:16px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Destaque da Semana</h3><p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;\">Confira os produtos mais vendidos desta semana com descontos imperdíveis.</p>",
-                  "_meta": {
-                    "htmlID": "u_content_text_2",
-                    "htmlClassNames": "u_content_text"
-                  }
-                }
-              }
-            ],
-            "values": {
-              "backgroundColor": "#FFFFFF",
-              "padding": "0px",
-              "border": {},
-              "_meta": {
-                "htmlID": "u_column_3",
-                "htmlClassNames": "u_column"
-              }
-            }
-          },
-          {
-            "id": "nl_col_4",
-            "contents": [
-              {
-                "id": "nl_txt_3",
-                "type": "text",
-                "values": {
-                  "containerPadding": "10px",
-                  "anchor": "",
-                  "textAlign": "left",
-                  "lineHeight": "160%",
-                  "linkStyle": {
-                    "inherit": true,
-                    "linkColor": "#F97316",
-                    "linkHoverColor": "#EA580C",
-                    "linkUnderline": true,
-                    "linkHoverUnderline": true
-                  },
-                  "hideDesktop": false,
-                  "displayCondition": null,
-                  "text": "<h3 style=\"font-size:16px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Lançamentos</h3><p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;\">Novos produtos acabaram de chegar. Seja o primeiro a conferir!</p>",
+                  "text": "<p style=\"font-size:12px;color:#999999;font-family:'DM Sans',Arial,sans-serif;\">&copy; {{store_name}} | <a href=\"{{unsubscribe_url}}\" style=\"color:#F97316;\">Descadastrar</a></p>",
                   "_meta": {
                     "htmlID": "u_content_text_3",
                     "htmlClassNames": "u_content_text"
@@ -250,11 +247,11 @@
               }
             ],
             "values": {
-              "backgroundColor": "#FFFFFF",
+              "backgroundColor": "#F5F5F5",
               "padding": "0px",
               "border": {},
               "_meta": {
-                "htmlID": "u_column_4",
+                "htmlID": "u_column_3",
                 "htmlClassNames": "u_column"
               }
             }
@@ -277,159 +274,6 @@
           "hideDesktop": false,
           "_meta": {
             "htmlID": "u_row_3",
-            "htmlClassNames": "u_row"
-          },
-          "selectable": true,
-          "draggable": true,
-          "duplicatable": true,
-          "deletable": true,
-          "hideable": true
-        }
-      },
-      {
-        "id": "nl_row_4",
-        "cells": [1],
-        "columns": [
-          {
-            "id": "nl_col_5",
-            "contents": [
-              {
-                "id": "nl_btn_1",
-                "type": "button",
-                "values": {
-                  "containerPadding": "20px 30px 30px",
-                  "anchor": "",
-                  "href": {
-                    "name": "web",
-                    "values": {
-                      "href": "{{store_url}}",
-                      "target": "_blank"
-                    }
-                  },
-                  "buttonColors": {
-                    "color": "#FFFFFF",
-                    "backgroundColor": "#F97316",
-                    "hoverColor": "#FFFFFF",
-                    "hoverBackgroundColor": "#EA580C"
-                  },
-                  "size": {
-                    "autoWidth": false,
-                    "width": "50%"
-                  },
-                  "textAlign": "center",
-                  "lineHeight": "120%",
-                  "padding": "14px 28px",
-                  "border": {},
-                  "borderRadius": "8px",
-                  "hideDesktop": false,
-                  "displayCondition": null,
-                  "text": "<span style=\"font-size:14px;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Ver Todas as Ofertas</span>",
-                  "calculatedWidth": 285,
-                  "calculatedHeight": 44,
-                  "_meta": {
-                    "htmlID": "u_content_button_1",
-                    "htmlClassNames": "u_content_button"
-                  }
-                }
-              }
-            ],
-            "values": {
-              "backgroundColor": "#FFFFFF",
-              "padding": "0px",
-              "border": {},
-              "_meta": {
-                "htmlID": "u_column_5",
-                "htmlClassNames": "u_column"
-              }
-            }
-          }
-        ],
-        "values": {
-          "displayCondition": null,
-          "columns": false,
-          "backgroundColor": "",
-          "columnsBackgroundColor": "",
-          "backgroundImage": {
-            "url": "",
-            "fullWidth": true,
-            "repeat": "no-repeat",
-            "size": "custom",
-            "position": "center"
-          },
-          "padding": "0px",
-          "anchor": "",
-          "hideDesktop": false,
-          "_meta": {
-            "htmlID": "u_row_4",
-            "htmlClassNames": "u_row"
-          },
-          "selectable": true,
-          "draggable": true,
-          "duplicatable": true,
-          "deletable": true,
-          "hideable": true
-        }
-      },
-      {
-        "id": "nl_row_5",
-        "cells": [1],
-        "columns": [
-          {
-            "id": "nl_col_6",
-            "contents": [
-              {
-                "id": "nl_txt_5",
-                "type": "text",
-                "values": {
-                  "containerPadding": "20px 30px",
-                  "anchor": "",
-                  "textAlign": "center",
-                  "lineHeight": "160%",
-                  "linkStyle": {
-                    "inherit": true,
-                    "linkColor": "#F97316",
-                    "linkHoverColor": "#EA580C",
-                    "linkUnderline": true,
-                    "linkHoverUnderline": true
-                  },
-                  "hideDesktop": false,
-                  "displayCondition": null,
-                  "text": "<p style=\"font-size:12px;color:#999999;font-family:'DM Sans',Arial,sans-serif;\">&copy; {{store_name}} | <a href=\"{{unsubscribe_url}}\" style=\"color:#F97316;\">Descadastrar</a></p>",
-                  "_meta": {
-                    "htmlID": "u_content_text_5",
-                    "htmlClassNames": "u_content_text"
-                  }
-                }
-              }
-            ],
-            "values": {
-              "backgroundColor": "#F5F5F5",
-              "padding": "0px",
-              "border": {},
-              "_meta": {
-                "htmlID": "u_column_6",
-                "htmlClassNames": "u_column"
-              }
-            }
-          }
-        ],
-        "values": {
-          "displayCondition": null,
-          "columns": false,
-          "backgroundColor": "",
-          "columnsBackgroundColor": "",
-          "backgroundImage": {
-            "url": "",
-            "fullWidth": true,
-            "repeat": "no-repeat",
-            "size": "custom",
-            "position": "center"
-          },
-          "padding": "0px",
-          "anchor": "",
-          "hideDesktop": false,
-          "_meta": {
-            "htmlID": "u_row_5",
             "htmlClassNames": "u_row"
           },
           "selectable": true,
@@ -476,7 +320,7 @@
         }
       },
       "backgroundColor": "#F5F5F5",
-      "preheaderText": "Novidades e ofertas da {{store_name}}",
+      "preheaderText": "Lembrete: seu boleto do pedido {{order_number}} vence em breve!",
       "linkStyle": {
         "body": true,
         "linkColor": "#F97316",

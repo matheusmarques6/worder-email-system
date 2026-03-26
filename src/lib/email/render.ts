@@ -1,98 +1,100 @@
-import type { Contact, Store } from "@/types";
-
+/**
+ * Render merge tags in HTML content
+ * Supports {{tag}} and {{tag|fallback}} syntax
+ */
 export function renderMergeTags(
   html: string,
-  data: Record<string, string | undefined>
+  data: Record<string, string>
 ): string {
-  return html.replace(/\{\{(\w+)(?:\|([^}]*))?\}\}/g, (_match, tag, fallback) => {
-    const value = data[tag];
-    if (value !== undefined && value !== null && value !== "") {
-      return value;
+  return html.replace(
+    /\{\{(\w+)(?:\|([^}]*))?\}\}/g,
+    (_match, tag: string, fallback?: string) => {
+      return data[tag] || fallback || "";
     }
-    return fallback || "";
-  });
+  );
 }
 
+/**
+ * Rewrite all <a href="..."> URLs for click tracking
+ * Skips mailto: and # links
+ */
 export function rewriteUrlsForTracking(
   html: string,
   emailSendId: string,
   baseUrl: string
 ): string {
   return html.replace(
-    /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*?)>/gi,
-    (match, before, url, after) => {
-      // Skip mailto, tel, and anchor links
+    /(<a\s[^>]*href=["'])([^"']+)(["'][^>]*>)/gi,
+    (_match, prefix: string, url: string, suffix: string) => {
       if (
         url.startsWith("mailto:") ||
-        url.startsWith("tel:") ||
-        url.startsWith("#")
+        url.startsWith("#") ||
+        url.startsWith("{{")
       ) {
-        return match;
+        return `${prefix}${url}${suffix}`;
       }
-      // Skip tracking URLs (avoid double-wrapping)
-      if (url.includes("/api/t/c/")) {
-        return match;
-      }
-      const encodedUrl = encodeURIComponent(url);
-      return `<a ${before}href="${baseUrl}/api/t/c/${emailSendId}?url=${encodedUrl}"${after}>`;
+      const trackUrl = `${baseUrl}/api/t/c/${emailSendId}?url=${encodeURIComponent(url)}`;
+      return `${prefix}${trackUrl}${suffix}`;
     }
   );
 }
 
+/**
+ * Inject a 1x1 transparent pixel for open tracking
+ */
 export function injectOpenPixel(
   html: string,
   emailSendId: string,
   baseUrl: string
 ): string {
   const pixel = `<img src="${baseUrl}/api/t/o/${emailSendId}" width="1" height="1" style="display:none" alt="" />`;
-
   if (html.includes("</body>")) {
     return html.replace("</body>", `${pixel}</body>`);
   }
   return html + pixel;
 }
 
+/**
+ * Add unsubscribe link if not already present
+ */
 export function addUnsubscribeLink(
   html: string,
   emailSendId: string,
   baseUrl: string
 ): string {
-  // Don't add if already present
-  if (html.includes("/api/unsubscribe/")) {
+  if (html.toLowerCase().includes("unsubscribe")) {
     return html;
   }
-
-  const unsubLink = `
-    <div style="text-align:center;padding:20px;font-size:12px;color:#9CA3AF;">
-      <a href="${baseUrl}/api/unsubscribe/${emailSendId}" style="color:#9CA3AF;text-decoration:underline;">
-        Descadastrar-se
-      </a>
-    </div>
-  `;
-
+  const link = `<div style="text-align:center;padding:20px;font-size:12px;color:#999;"><a href="${baseUrl}/api/unsubscribe/${emailSendId}" style="color:#999;text-decoration:underline;">Descadastrar</a></div>`;
   if (html.includes("</body>")) {
-    return html.replace("</body>", `${unsubLink}</body>`);
+    return html.replace("</body>", `${link}</body>`);
   }
-  return html + unsubLink;
+  return html + link;
 }
 
+/**
+ * Full pipeline: merge tags → tracking URLs → open pixel → unsubscribe
+ */
 export function prepareEmailHtml(
   html: string,
-  contact: Contact,
-  store: Store,
-  emailSendId: string
+  contact: { email: string; first_name?: string | null; last_name?: string | null; phone?: string | null },
+  store: { name: string; shopify_domain?: string | null },
+  emailSendId: string,
+  eventData?: Record<string, string>
 ): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-  const data: Record<string, string | undefined> = {
-    first_name: contact.first_name || undefined,
-    last_name: contact.last_name || undefined,
+  const data: Record<string, string> = {
     email: contact.email,
-    phone: contact.phone || undefined,
+    first_name: contact.first_name || "",
+    last_name: contact.last_name || "",
+    phone: contact.phone || "",
     store_name: store.name,
     store_url: store.shopify_domain
       ? `https://${store.shopify_domain}`
-      : undefined,
+      : "",
+    unsubscribe_url: `${baseUrl}/api/unsubscribe/${emailSendId}`,
+    ...eventData,
   };
 
   let result = renderMergeTags(html, data);

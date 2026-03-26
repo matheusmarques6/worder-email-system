@@ -1,82 +1,84 @@
 "use client";
 
-import { useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
-import type { EditorRef } from "react-email-editor";
+import { useRef, useCallback, useImperativeHandle, forwardRef } from "react";
+import EmailEditor, {
+  type EditorRef,
+  type EmailEditorProps,
+  type Editor,
+} from "react-email-editor";
 import { mergeTags } from "./merge-tags";
-
-const EmailEditor = dynamic(() => import("react-email-editor"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[600px] items-center justify-center bg-gray-50">
-      <p className="text-sm text-gray-500">Carregando editor...</p>
-    </div>
-  ),
-});
 
 interface EmailEditorWrapperProps {
   designJson?: Record<string, unknown>;
   onSave?: (html: string, json: Record<string, unknown>) => void;
-  onReady?: () => void;
+  height?: string;
 }
 
-export function EmailEditorWrapper({
-  designJson,
-  onSave,
-  onReady,
-}: EmailEditorWrapperProps) {
-  const emailEditorRef = useRef<EditorRef>(null);
+export interface EmailEditorHandle {
+  exportHtml: () => void;
+  getHtml: (callback: (html: string) => void) => void;
+}
 
-  const handleReady = useCallback(() => {
-    const editor = emailEditorRef.current?.editor;
-    if (editor && designJson) {
-      editor.loadDesign(designJson as Record<string, unknown>);
-    }
-    onReady?.();
-  }, [designJson, onReady]);
+export const EmailEditorWrapper = forwardRef<
+  EmailEditorHandle,
+  EmailEditorWrapperProps
+>(function EmailEditorWrapper({ designJson, onSave, height = "100vh" }, ref) {
+  const emailEditorRef = useRef<EditorRef | null>(null);
 
-  const handleSave = useCallback(() => {
-    const editor = emailEditorRef.current?.editor;
-    if (!editor) return;
-    editor.exportHtml((data: { html: string; design: Record<string, unknown> }) => {
-      onSave?.(data.html, data.design);
-    });
-  }, [onSave]);
+  const onReady = useCallback(
+    (unlayer: Editor) => {
+      if (emailEditorRef.current) {
+        emailEditorRef.current.editor = unlayer;
+      }
+      if (designJson) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        unlayer.loadDesign(designJson as any);
+      }
+    },
+    [designJson]
+  );
 
-  const projectId = process.env.NEXT_PUBLIC_UNLAYER_PROJECT_ID
-    ? parseInt(process.env.NEXT_PUBLIC_UNLAYER_PROJECT_ID)
-    : undefined;
+  useImperativeHandle(
+    ref,
+    () => ({
+      exportHtml: () => {
+        emailEditorRef.current?.editor?.exportHtml(
+          (data: { design: Record<string, unknown>; html: string }) => {
+            onSave?.(data.html, data.design);
+          }
+        );
+      },
+      getHtml: (callback: (html: string) => void) => {
+        emailEditorRef.current?.editor?.exportHtml(
+          (data: { html: string }) => {
+            callback(data.html);
+          }
+        );
+      },
+    }),
+    [onSave]
+  );
 
   return (
-    <div className="flex flex-col">
+    <div style={{ height }}>
       <EmailEditor
-        ref={emailEditorRef}
-        onReady={handleReady}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ref={emailEditorRef as any}
+        onReady={onReady as unknown as EmailEditorProps["onReady"]}
         options={{
-          projectId,
+          mergeTags,
           locale: "pt-BR",
           appearance: {
             theme: "modern_light",
           },
-          mergeTags,
           features: {
             textEditor: {
-              spellChecker: true,
+              tables: true,
             },
           },
         }}
-        style={{ height: "calc(100vh - 120px)" }}
+        style={{ height: "100%" }}
       />
-      {onSave && (
-        <div className="flex justify-end border-t border-gray-200 bg-white px-4 py-3">
-          <button
-            onClick={handleSave}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-          >
-            Salvar
-          </button>
-        </div>
-      )}
     </div>
   );
-}
+});

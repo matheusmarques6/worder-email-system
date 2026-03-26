@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 interface ResendWebhookPayload {
@@ -6,27 +6,51 @@ interface ResendWebhookPayload {
   data: {
     email_id: string;
     to: string[];
+    created_at: string;
   };
 }
 
 export async function POST(request: NextRequest) {
-  const payload = (await request.json()) as ResendWebhookPayload;
-  const supabase = createAdminClient();
+  // Verify webhook signature via shared secret header
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const svixId = request.headers.get("svix-id");
+    const svixTimestamp = request.headers.get("svix-timestamp");
+    const svixSignature = request.headers.get("svix-signature");
 
-  const resendMessageId = payload.data.email_id;
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return NextResponse.json({ error: "Missing webhook headers" }, { status: 401 });
+    }
+  }
+
+  let payload: ResendWebhookPayload;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const supabase = createAdminClient();
+  const { type, data } = payload;
+
+  if (!data?.email_id) {
+    return NextResponse.json({ received: true });
+  }
+
+  const resendMessageId = data.email_id;
 
   // Find the email_send by resend_message_id
   const { data: emailSend } = await supabase
     .from("email_sends")
-    .select("id, contact_id")
+    .select("id, contact_id, store_id")
     .eq("resend_message_id", resendMessageId)
     .single();
 
   if (!emailSend) {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ received: true });
   }
 
-  switch (payload.type) {
+  switch (type) {
     case "email.delivered": {
       await supabase
         .from("email_sends")
@@ -47,7 +71,6 @@ export async function POST(request: NextRequest) {
         })
         .eq("id", emailSend.id);
 
-      // Mark contact as bounced
       await supabase
         .from("contacts")
         .update({ consent_email: "bounced" })
@@ -64,5 +87,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ received: true });
 }

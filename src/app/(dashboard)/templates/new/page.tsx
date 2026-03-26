@@ -2,66 +2,120 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Mail, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, FileText, LayoutTemplate } from "lucide-react";
-import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
-const categories = [
-  "E-commerce",
-  "Welcome",
-  "Abandono",
-  "Pós-compra",
-  "Newsletter",
+import welcomeDesign from "@/lib/email/templates/welcome.json";
+import abandonedCartDesign from "@/lib/email/templates/abandoned-cart.json";
+import orderConfirmDesign from "@/lib/email/templates/order-confirm.json";
+import postPurchaseDesign from "@/lib/email/templates/post-purchase.json";
+import newsletterDesign from "@/lib/email/templates/newsletter.json";
+
+const categoryOptions = [
+  { value: "e-commerce", label: "E-commerce" },
+  { value: "welcome", label: "Welcome" },
+  { value: "abandono", label: "Abandono de carrinho" },
+  { value: "pos-compra", label: "Pós-compra" },
+  { value: "newsletter", label: "Newsletter" },
+  { value: "custom", label: "Custom" },
 ];
 
 const prebuiltTemplates = [
-  { id: "welcome", name: "Boas-vindas", category: "Welcome" },
-  { id: "abandoned-cart", name: "Carrinho Abandonado", category: "Abandono" },
-  { id: "order-confirm", name: "Confirmação de Pedido", category: "E-commerce" },
-  { id: "post-purchase", name: "Avaliação Pós-Compra", category: "Pós-compra" },
-  { id: "newsletter", name: "Newsletter", category: "Newsletter" },
+  { key: "welcome", name: "Boas-vindas", category: "welcome", design: welcomeDesign },
+  { key: "abandoned-cart", name: "Carrinho Abandonado", category: "abandono", design: abandonedCartDesign },
+  { key: "order-confirm", name: "Confirmação de Pedido", category: "pos-compra", design: orderConfirmDesign },
+  { key: "post-purchase", name: "Pós-compra", category: "pos-compra", design: postPurchaseDesign },
+  { key: "newsletter", name: "Newsletter", category: "newsletter", design: newsletterDesign },
 ];
 
 export default function NewTemplatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(categories[0]);
-  const [mode, setMode] = useState<"blank" | "prebuilt" | null>(null);
+  const [category, setCategory] = useState("custom");
+  const [loading, setLoading] = useState(false);
 
-  const handleCreate = () => {
-    if (!name) return;
-    // In production, this would create the template in Supabase and redirect
-    router.push("/templates/1/edit");
-  };
+  async function createTemplate(
+    designJson?: Record<string, unknown>,
+    overrideCategory?: string
+  ) {
+    if (!name.trim()) {
+      toast.error("Digite um nome para o template");
+      return;
+    }
+
+    setLoading(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: store } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!store) {
+      toast.error("Loja não encontrada");
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("templates")
+      .insert({
+        store_id: store.id,
+        name: name.trim(),
+        category: overrideCategory || category,
+        design_json: designJson || null,
+        is_prebuilt: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Erro ao criar template");
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Template criado!");
+    router.push(`/templates/${data.id}/edit`);
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/templates">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
+          <Button variant="ghost" size="sm">
+            <ArrowLeft size={16} className="mr-1" />
+            Voltar
           </Button>
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Criar Template
-        </h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Novo Template</h1>
       </div>
 
-      <div className="mx-auto max-w-2xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="max-w-md space-y-4">
           <div>
             <Label className="mb-1.5 text-sm font-medium text-gray-700">
               Nome do template
             </Label>
             <Input
-              placeholder="Ex: Email de boas-vindas"
+              placeholder="Ex: Newsletter Semanal"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-
           <div>
             <Label className="mb-1.5 text-sm font-medium text-gray-700">
               Categoria
@@ -69,85 +123,52 @@ export default function NewTemplatePage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              {categoryOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
           </div>
+        </div>
+      </div>
 
-          <div>
-            <Label className="mb-3 text-sm font-medium text-gray-700">
-              Como deseja começar?
-            </Label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setMode("blank")}
-                className={`flex flex-col items-center rounded-lg border-2 p-6 transition-colors ${
-                  mode === "blank"
-                    ? "border-brand-500 bg-brand-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <FileText className="mb-2 h-8 w-8 text-gray-400" />
-                <span className="text-sm font-medium text-gray-900">
-                  Começar do zero
-                </span>
-                <span className="mt-1 text-xs text-gray-500">
-                  Editor vazio
-                </span>
-              </button>
-              <button
-                onClick={() => setMode("prebuilt")}
-                className={`flex flex-col items-center rounded-lg border-2 p-6 transition-colors ${
-                  mode === "prebuilt"
-                    ? "border-brand-500 bg-brand-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <LayoutTemplate className="mb-2 h-8 w-8 text-gray-400" />
-                <span className="text-sm font-medium text-gray-900">
-                  Template pré-construído
-                </span>
-                <span className="mt-1 text-xs text-gray-500">
-                  Escolha um modelo
-                </span>
-              </button>
-            </div>
-          </div>
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          Escolha como começar
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <button
+            onClick={() => createTemplate()}
+            disabled={loading}
+            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-8 transition-colors hover:border-brand-500 hover:bg-brand-50"
+          >
+            <Plus size={32} className="mb-2 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Em branco</span>
+            <span className="text-xs text-gray-400">Comece do zero</span>
+          </button>
 
-          {mode === "prebuilt" && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">
-                Escolha um template
-              </Label>
-              <div className="grid grid-cols-1 gap-3">
-                {prebuiltTemplates.map((t) => (
-                  <button
-                    key={t.id}
-                    className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-brand-500 hover:bg-brand-50"
-                  >
-                    <LayoutTemplate className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {t.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{t.category}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-4">
-            <Button onClick={handleCreate} disabled={!name || !mode}>
-              Criar e Editar
-            </Button>
-          </div>
+          {prebuiltTemplates.map((pt) => (
+            <button
+              key={pt.key}
+              onClick={() =>
+                createTemplate(
+                  pt.design as Record<string, unknown>,
+                  pt.category
+                )
+              }
+              disabled={loading}
+              className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-8 shadow-sm transition-colors hover:border-brand-500 hover:bg-brand-50"
+            >
+              <Mail size={32} className="mb-2 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">
+                {pt.name}
+              </span>
+              <span className="text-xs text-gray-400">{pt.category}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>

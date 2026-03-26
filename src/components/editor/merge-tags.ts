@@ -1,29 +1,82 @@
 export const mergeTags = {
-  first_name: { name: "Nome", value: "{{first_name}}" },
-  last_name: { name: "Sobrenome", value: "{{last_name}}" },
-  email: { name: "Email", value: "{{email}}" },
-  phone: { name: "Telefone", value: "{{phone}}" },
-  store_name: { name: "Nome da Loja", value: "{{store_name}}" },
-  store_url: { name: "URL da Loja", value: "{{store_url}}" },
-  cart_items: { name: "Itens do Carrinho", value: "{{cart_items}}" },
-  cart_total: { name: "Total do Carrinho", value: "{{cart_total}}" },
-  cart_url: { name: "URL do Carrinho", value: "{{cart_url}}" },
-  order_number: { name: "Número do Pedido", value: "{{order_number}}" },
-  order_total: { name: "Total do Pedido", value: "{{order_total}}" },
-  order_tracking_url: {
-    name: "URL de Rastreio",
-    value: "{{order_tracking_url}}",
+  first_name: {
+    name: "Primeiro nome",
+    value: "{{first_name}}",
+    sample: "Maria",
   },
-  product_name: { name: "Nome do Produto", value: "{{product_name}}" },
-  product_image: { name: "Imagem do Produto", value: "{{product_image}}" },
-  product_price: { name: "Preço do Produto", value: "{{product_price}}" },
-  product_url: { name: "URL do Produto", value: "{{product_url}}" },
-};
-
-export const mergeTagCategories = {
-  Perfil: ["first_name", "last_name", "email", "phone"],
-  Loja: ["store_name", "store_url"],
-  Carrinho: ["cart_items", "cart_total", "cart_url"],
-  Pedido: ["order_number", "order_total", "order_tracking_url"],
-  Produto: ["product_name", "product_image", "product_price", "product_url"],
+  last_name: {
+    name: "Sobrenome",
+    value: "{{last_name}}",
+    sample: "Silva",
+  },
+  email: {
+    name: "Email",
+    value: "{{email}}",
+    sample: "maria@email.com",
+  },
+  phone: {
+    name: "Telefone",
+    value: "{{phone}}",
+    sample: "(11) 99999-9999",
+  },
+  store_name: {
+    name: "Nome da loja",
+    value: "{{store_name}}",
+    sample: "Minha Loja",
+  },
+  store_url: {
+    name: "URL da loja",
+    value: "{{store_url}}",
+    sample: "https://minhaloja.com.br",
+  },
+  order_number: {
+    name: "Número do pedido",
+    value: "{{order_number}}",
+    sample: "#1234",
+  },
+  order_total: {
+    name: "Total do pedido",
+    value: "{{order_total}}",
+    sample: "R$ 199,90",
+  },
+  order_tracking_url: {
+    name: "URL de rastreio",
+    value: "{{order_tracking_url}}",
+    sample: "https://rastreio.correios.com.br/AB123456789BR",
+  },
+  cart_total: {
+    name: "Total do carrinho",
+    value: "{{cart_total}}",
+    sample: "R$ 299,90",
+  },
+  cart_url: {
+    name: "URL do carrinho",
+    value: "{{cart_url}}",
+    sample: "https://minhaloja.com.br/cart",
+  },
+  cart_items: {
+    name: "Itens do carrinho",
+    value: "{{cart_items}}",
+    sample: "Camiseta Preta, Calça Jeans",
+  },
+  product_name: {
+    name: "Nome do produto",
+    value: "{{product_name}}",
+    sample: "Camiseta Premium",
+  },
+  product_price: {
+    name: "Preço do produto",
+    value: "{{product_price}}",
+    sample: "R$ 89,90",
+  },
+  product_image: {
+    name: "Imagem do produto",
+    value: "{{product_image}}",
+    sample: "https://via.placeholder.com/300x300",
+  },
+  product_url: {
+    name: "URL do produto",
+    value: "{{product_url}}",
+    sample: "https://minhaloja.com.br/produto/camiseta",
+  },
 };

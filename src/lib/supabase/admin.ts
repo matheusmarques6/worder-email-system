@@ -18,3 +18,6 @@ export const supabaseAdmin = new Proxy({} as SupabaseClient, {
     return Reflect.get(getSupabaseAdmin(), prop)
   },
 })
+
+// Alias used by campaign routes
+export const createAdminClient = getSupabaseAdmin

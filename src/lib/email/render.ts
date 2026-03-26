@@ -93,6 +93,7 @@ export function prepareEmailHtml(
     store_url: store.shopify_domain
       ? `https://${store.shopify_domain}`
       : "",
+    unsubscribe_url: `${baseUrl}/api/unsubscribe/${emailSendId}`,
     ...eventData,
   };
 

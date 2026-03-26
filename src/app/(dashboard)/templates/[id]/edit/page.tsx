@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import type { Template } from "@/types";
 import type { EmailEditorHandle } from "@/components/editor/email-editor";
@@ -25,6 +26,9 @@ export default function EditTemplatePage() {
   const [template, setTemplate] = useState<Template | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [showTestInput, setShowTestInput] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     async function fetchTemplate() {
@@ -69,6 +73,39 @@ export default function EditTemplatePage() {
     [name, params.id]
   );
 
+  const handleSendTest = useCallback(() => {
+    if (!testEmail.trim()) {
+      toast.error("Digite um email para teste");
+      return;
+    }
+
+    setSendingTest(true);
+    editorRef.current?.getHtml(async (html) => {
+      try {
+        const response = await fetch("/api/campaigns/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: testEmail.trim(),
+            subject: `[TESTE] ${name || "Template"}`,
+            html,
+          }),
+        });
+
+        if (response.ok) {
+          toast.success(`Email de teste enviado para ${testEmail}`);
+          setShowTestInput(false);
+          setTestEmail("");
+        } else {
+          toast.error("Erro ao enviar email de teste");
+        }
+      } catch {
+        toast.error("Erro ao enviar email de teste");
+      }
+      setSendingTest(false);
+    });
+  }, [testEmail, name]);
+
   if (!template) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -95,10 +132,46 @@ export default function EditTemplatePage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Send size={14} className="mr-1" />
-            Enviar Teste
-          </Button>
+          {showTestInput ? (
+            <div className="flex items-center gap-2">
+              <Input
+                type="email"
+                placeholder="email@teste.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="h-8 w-56 text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendTest();
+                  if (e.key === "Escape") setShowTestInput(false);
+                }}
+                autoFocus
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSendTest}
+                disabled={sendingTest}
+              >
+                {sendingTest ? "Enviando..." : "Enviar"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTestInput(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTestInput(true)}
+            >
+              <Send size={14} className="mr-1" />
+              Enviar Teste
+            </Button>
+          )}
           <Button
             size="sm"
             disabled={saving}

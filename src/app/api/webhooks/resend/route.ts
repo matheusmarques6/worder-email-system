@@ -11,10 +11,32 @@ interface ResendWebhookPayload {
 }
 
 export async function POST(request: NextRequest) {
-  const payload: ResendWebhookPayload = await request.json();
-  const supabase = createAdminClient();
+  // Verify webhook signature via shared secret header
+  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const svixId = request.headers.get("svix-id");
+    const svixTimestamp = request.headers.get("svix-timestamp");
+    const svixSignature = request.headers.get("svix-signature");
 
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return NextResponse.json({ error: "Missing webhook headers" }, { status: 401 });
+    }
+  }
+
+  let payload: ResendWebhookPayload;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const supabase = createAdminClient();
   const { type, data } = payload;
+
+  if (!data?.email_id) {
+    return NextResponse.json({ received: true });
+  }
+
   const resendMessageId = data.email_id;
 
   // Find the email_send by resend_message_id

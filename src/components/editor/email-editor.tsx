@@ -16,6 +16,7 @@ interface EmailEditorWrapperProps {
 
 export interface EmailEditorHandle {
   exportHtml: () => void;
+  getHtml: (callback: (html: string) => void) => void;
 }
 
 export const EmailEditorWrapper = forwardRef<
@@ -44,6 +45,13 @@ export const EmailEditorWrapper = forwardRef<
         emailEditorRef.current?.editor?.exportHtml(
           (data: { design: Record<string, unknown>; html: string }) => {
             onSave?.(data.html, data.design);
+          }
+        );
+      },
+      getHtml: (callback: (html: string) => void) => {
+        emailEditorRef.current?.editor?.exportHtml(
+          (data: { html: string }) => {
+            callback(data.html);
           }
         );
       },

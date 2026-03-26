@@ -1,60 +1,338 @@
 {
-  "counters": { "u_row": 4, "u_column": 4, "u_content_text": 4, "u_content_image": 1, "u_content_button": 1 },
+  "counters": {
+    "u_row": 4,
+    "u_column": 4,
+    "u_content_text": 3,
+    "u_content_button": 1,
+    "u_content_image": 1
+  },
   "body": {
+    "id": "winback_body",
     "rows": [
       {
+        "id": "wb_row_1",
         "cells": [1],
-        "columns": [{
-          "contents": [{
-            "type": "text",
-            "values": { "text": "<h1 style=\"text-align:center;color:#F97316;\">Sentimos sua falta, {{first_name}}!</h1>" }
-          }]
-        }],
-        "values": { "backgroundColor": "#ffffff", "padding": "30px 20px 10px" }
-      },
-      {
-        "cells": [1],
-        "columns": [{
-          "contents": [{
-            "type": "text",
-            "values": { "text": "<p style=\"font-size:16px;color:#333;text-align:center;\">Faz tempo que você não aparece por aqui! A <strong>{{store_name}}</strong> tem novidades esperando por você.</p><p style=\"font-size:14px;color:#555;text-align:center;\">Preparamos condições especiais para você voltar. Não perca!</p>" }
-          }]
-        }],
-        "values": { "backgroundColor": "#ffffff", "padding": "10px 20px" }
-      },
-      {
-        "cells": [1],
-        "columns": [{
-          "contents": [{
-            "type": "button",
+        "columns": [
+          {
+            "id": "wb_col_1",
+            "contents": [
+              {
+                "id": "wb_img_1",
+                "type": "image",
+                "values": {
+                  "containerPadding": "20px 10px",
+                  "anchor": "",
+                  "src": {
+                    "url": "https://via.placeholder.com/180x50/F97316/FFFFFF?text=Logo",
+                    "width": 180,
+                    "height": 50
+                  },
+                  "textAlign": "center",
+                  "altText": "{{store_name}}",
+                  "action": {
+                    "name": "web",
+                    "values": {
+                      "href": "{{store_url}}",
+                      "target": "_blank"
+                    }
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "_meta": {
+                    "htmlID": "u_content_image_1",
+                    "htmlClassNames": "u_content_image"
+                  }
+                }
+              }
+            ],
             "values": {
-              "text": "Ver Novidades",
-              "href": "{{store_url}}",
               "backgroundColor": "#F97316",
-              "color": "#ffffff",
-              "borderRadius": "8px",
-              "padding": "12px 30px",
-              "textAlign": "center"
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_1",
+                "htmlClassNames": "u_column"
+              }
             }
-          }]
-        }],
-        "values": { "backgroundColor": "#ffffff", "padding": "10px 20px 30px" }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "#F97316",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_1",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
       },
       {
+        "id": "wb_row_2",
         "cells": [1],
-        "columns": [{
-          "contents": [{
-            "type": "text",
-            "values": { "text": "<p style=\"text-align:center;font-size:12px;color:#999;\">© {{store_name}} | <a href=\"{{unsubscribe_url}}\">Descadastrar</a></p>" }
-          }]
-        }],
-        "values": { "backgroundColor": "#f5f5f5", "padding": "20px" }
+        "columns": [
+          {
+            "id": "wb_col_2",
+            "contents": [
+              {
+                "id": "wb_txt_1",
+                "type": "text",
+                "values": {
+                  "containerPadding": "30px 30px 10px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "140%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<h1 style=\"font-size:24px;font-weight:600;color:#1A1D21;font-family:'DM Sans',Arial,sans-serif;\">Sentimos sua falta, {{first_name}}!</h1>",
+                  "_meta": {
+                    "htmlID": "u_content_text_1",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "wb_txt_2",
+                "type": "text",
+                "values": {
+                  "containerPadding": "10px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;\">Faz tempo que você não aparece por aqui! A <strong>{{store_name}}</strong> tem novidades esperando por você.</p><p style=\"font-size:14px;color:#555555;font-family:'DM Sans',Arial,sans-serif;margin-top:10px;\">Preparamos condições especiais para você voltar. Não perca!</p>",
+                  "_meta": {
+                    "htmlID": "u_content_text_2",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              },
+              {
+                "id": "wb_btn_1",
+                "type": "button",
+                "values": {
+                  "containerPadding": "20px 30px 30px",
+                  "anchor": "",
+                  "href": {
+                    "name": "web",
+                    "values": {
+                      "href": "{{store_url}}",
+                      "target": "_blank"
+                    }
+                  },
+                  "buttonColors": {
+                    "color": "#FFFFFF",
+                    "backgroundColor": "#F97316",
+                    "hoverColor": "#FFFFFF",
+                    "hoverBackgroundColor": "#EA580C"
+                  },
+                  "size": {
+                    "autoWidth": false,
+                    "width": "50%"
+                  },
+                  "textAlign": "center",
+                  "lineHeight": "120%",
+                  "padding": "14px 28px",
+                  "border": {},
+                  "borderRadius": "8px",
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<span style=\"font-size:14px;font-family:'DM Sans',Arial,sans-serif;font-weight:600;\">Ver Novidades</span>",
+                  "calculatedWidth": 285,
+                  "calculatedHeight": 44,
+                  "_meta": {
+                    "htmlID": "u_content_button_1",
+                    "htmlClassNames": "u_content_button"
+                  }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#FFFFFF",
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_2",
+                "htmlClassNames": "u_column"
+              }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_2",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
+      },
+      {
+        "id": "wb_row_3",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "wb_col_3",
+            "contents": [
+              {
+                "id": "wb_txt_3",
+                "type": "text",
+                "values": {
+                  "containerPadding": "20px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": {
+                    "inherit": true,
+                    "linkColor": "#F97316",
+                    "linkHoverColor": "#EA580C",
+                    "linkUnderline": true,
+                    "linkHoverUnderline": true
+                  },
+                  "hideDesktop": false,
+                  "displayCondition": null,
+                  "text": "<p style=\"font-size:12px;color:#999999;font-family:'DM Sans',Arial,sans-serif;\">&copy; {{store_name}} | <a href=\"{{unsubscribe_url}}\" style=\"color:#F97316;\">Descadastrar</a></p>",
+                  "_meta": {
+                    "htmlID": "u_content_text_3",
+                    "htmlClassNames": "u_content_text"
+                  }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#F5F5F5",
+              "padding": "0px",
+              "border": {},
+              "_meta": {
+                "htmlID": "u_column_3",
+                "htmlClassNames": "u_column"
+              }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": {
+            "url": "",
+            "fullWidth": true,
+            "repeat": "no-repeat",
+            "size": "custom",
+            "position": "center"
+          },
+          "padding": "0px",
+          "anchor": "",
+          "hideDesktop": false,
+          "_meta": {
+            "htmlID": "u_row_3",
+            "htmlClassNames": "u_row"
+          },
+          "selectable": true,
+          "draggable": true,
+          "duplicatable": true,
+          "deletable": true,
+          "hideable": true
+        }
       }
     ],
+    "headers": [],
+    "footers": [],
     "values": {
-      "backgroundColor": "#f5f5f5",
+      "popupPosition": "center",
+      "popupWidth": "600px",
+      "popupHeight": "auto",
+      "borderRadius": "10px",
+      "contentAlign": "center",
+      "contentVerticalAlign": "center",
       "contentWidth": "600px",
-      "fontFamily": { "label": "DM Sans", "value": "'DM Sans',sans-serif" }
+      "fontFamily": {
+        "label": "DM Sans",
+        "value": "'DM Sans',Arial,sans-serif"
+      },
+      "textColor": "#1A1D21",
+      "popupBackgroundColor": "#FFFFFF",
+      "popupBackgroundImage": {
+        "url": "",
+        "fullWidth": true,
+        "repeat": "no-repeat",
+        "size": "cover",
+        "position": "center"
+      },
+      "popupOverlay_backgroundColor": "rgba(0, 0, 0, 0.1)",
+      "popupCloseButton_position": "top-right",
+      "popupCloseButton_backgroundColor": "#DDDDDD",
+      "popupCloseButton_iconColor": "#000000",
+      "popupCloseButton_borderRadius": "0px",
+      "popupCloseButton_margin": "0px",
+      "popupCloseButton_action": {
+        "name": "close_popup",
+        "attrs": {
+          "onClick": "document.querySelector('.u-teleporter').remove()"
+        }
+      },
+      "backgroundColor": "#F5F5F5",
+      "preheaderText": "Sentimos sua falta! Volte e confira as novidades.",
+      "linkStyle": {
+        "body": true,
+        "linkColor": "#F97316",
+        "linkHoverColor": "#EA580C",
+        "linkUnderline": true,
+        "linkHoverUnderline": true
+      },
+      "_meta": {
+        "htmlID": "u_body",
+        "htmlClassNames": "u_body"
+      }
     }
-  }
+  },
+  "schemaVersion": 16
 }

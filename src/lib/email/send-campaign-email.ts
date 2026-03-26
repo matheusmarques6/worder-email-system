@@ -32,7 +32,6 @@ export async function sendCampaignEmail(
       template_id: template.id,
       subject: template.subject || "",
       status: "queued",
-      sent_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -101,6 +100,7 @@ export async function sendCampaignEmail(
     .update({
       resend_message_id: result.id,
       status: "sent",
+      sent_at: new Date().toISOString(),
     })
     .eq("id", emailSend.id);
 

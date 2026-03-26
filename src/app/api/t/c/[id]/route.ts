@@ -12,6 +12,16 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // Validate URL to prevent open redirect attacks
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  } catch {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   const supabase = createAdminClient();
 
   try {

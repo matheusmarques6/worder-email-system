@@ -1,0 +1,210 @@
+{
+  "counters": { "u_column": 4, "u_row": 4, "u_content_text": 3, "u_content_image": 1, "u_content_button": 1 },
+  "body": {
+    "id": "welcome_body",
+    "rows": [
+      {
+        "id": "welcome_row_header",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "welcome_col_header",
+            "contents": [
+              {
+                "id": "welcome_logo",
+                "type": "image",
+                "values": {
+                  "containerPadding": "20px 10px",
+                  "anchor": "",
+                  "src": { "url": "https://via.placeholder.com/180x50/F97316/FFFFFF?text={{store_name}}", "width": 180, "height": 50 },
+                  "textAlign": "center",
+                  "altText": "{{store_name}}",
+                  "action": { "name": "web", "values": { "href": "", "target": "_blank" } },
+                  "_meta": { "htmlID": "u_content_image_1", "htmlClassNames": "u_content_image" }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#F97316",
+              "padding": "0px",
+              "border": {},
+              "_meta": { "htmlID": "u_column_1", "htmlClassNames": "u_column" }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": { "url": "", "fullWidth": true, "repeat": "no-repeat", "size": "custom", "position": "center" },
+          "padding": "0px",
+          "anchor": "",
+          "_meta": { "htmlID": "u_row_1", "htmlClassNames": "u_row" }
+        }
+      },
+      {
+        "id": "welcome_row_greeting",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "welcome_col_greeting",
+            "contents": [
+              {
+                "id": "welcome_text_greeting",
+                "type": "text",
+                "values": {
+                  "containerPadding": "30px 30px 10px 30px",
+                  "anchor": "",
+                  "textAlign": "left",
+                  "lineHeight": "160%",
+                  "linkStyle": { "inherit": true },
+                  "text": "<h1 style=\"font-size:24px;font-weight:600;color:#111827;\">Bem-vindo(a), {{first_name}}!</h1>",
+                  "_meta": { "htmlID": "u_content_text_1", "htmlClassNames": "u_content_text" }
+                }
+              },
+              {
+                "id": "welcome_text_body",
+                "type": "text",
+                "values": {
+                  "containerPadding": "10px 30px",
+                  "anchor": "",
+                  "textAlign": "left",
+                  "lineHeight": "160%",
+                  "linkStyle": { "inherit": true },
+                  "text": "<p style=\"font-size:14px;color:#4B5563;\">Estamos muito felizes em ter voc\u00ea com a gente! A partir de agora, voc\u00ea vai receber as melhores ofertas, novidades e conte\u00fados exclusivos da <strong>{{store_name}}</strong>.</p><p style=\"font-size:14px;color:#4B5563;margin-top:12px;\">Preparamos uma sele\u00e7\u00e3o especial de produtos para voc\u00ea come\u00e7ar a explorar nossa loja.</p>",
+                  "_meta": { "htmlID": "u_content_text_2", "htmlClassNames": "u_content_text" }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#FFFFFF",
+              "padding": "0px",
+              "border": {},
+              "_meta": { "htmlID": "u_column_2", "htmlClassNames": "u_column" }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": { "url": "", "fullWidth": true, "repeat": "no-repeat", "size": "custom", "position": "center" },
+          "padding": "0px",
+          "anchor": "",
+          "_meta": { "htmlID": "u_row_2", "htmlClassNames": "u_row" }
+        }
+      },
+      {
+        "id": "welcome_row_cta",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "welcome_col_cta",
+            "contents": [
+              {
+                "id": "welcome_button_cta",
+                "type": "button",
+                "values": {
+                  "containerPadding": "10px 30px 30px 30px",
+                  "anchor": "",
+                  "href": { "name": "web", "values": { "href": "{{store_url}}", "target": "_blank" } },
+                  "buttonColors": { "color": "#FFFFFF", "backgroundColor": "#F97316", "hoverColor": "#FFFFFF", "hoverBackgroundColor": "#EA580C" },
+                  "size": { "autoWidth": false, "width": "100%" },
+                  "textAlign": "center",
+                  "lineHeight": "120%",
+                  "padding": "14px 28px",
+                  "borderRadius": "8px",
+                  "text": "<strong>Conhecer a Loja</strong>",
+                  "_meta": { "htmlID": "u_content_button_1", "htmlClassNames": "u_content_button" }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "#FFFFFF",
+              "padding": "0px",
+              "border": {},
+              "_meta": { "htmlID": "u_column_3", "htmlClassNames": "u_column" }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": { "url": "", "fullWidth": true, "repeat": "no-repeat", "size": "custom", "position": "center" },
+          "padding": "0px",
+          "anchor": "",
+          "_meta": { "htmlID": "u_row_3", "htmlClassNames": "u_row" }
+        }
+      },
+      {
+        "id": "welcome_row_footer",
+        "cells": [1],
+        "columns": [
+          {
+            "id": "welcome_col_footer",
+            "contents": [
+              {
+                "id": "welcome_text_footer",
+                "type": "text",
+                "values": {
+                  "containerPadding": "20px 30px",
+                  "anchor": "",
+                  "textAlign": "center",
+                  "lineHeight": "160%",
+                  "linkStyle": { "inherit": true },
+                  "text": "<p style=\"font-size:12px;color:#9CA3AF;\">Voc\u00ea est\u00e1 recebendo este email porque se cadastrou na <strong>{{store_name}}</strong>.<br/>Se n\u00e3o deseja mais receber nossos emails, <a href=\"{{unsubscribe_url}}\" style=\"color:#F97316;\">clique aqui para cancelar</a>.</p>",
+                  "_meta": { "htmlID": "u_content_text_3", "htmlClassNames": "u_content_text" }
+                }
+              }
+            ],
+            "values": {
+              "backgroundColor": "",
+              "padding": "0px",
+              "border": {},
+              "_meta": { "htmlID": "u_column_4", "htmlClassNames": "u_column" }
+            }
+          }
+        ],
+        "values": {
+          "displayCondition": null,
+          "columns": false,
+          "backgroundColor": "",
+          "columnsBackgroundColor": "",
+          "backgroundImage": { "url": "", "fullWidth": true, "repeat": "no-repeat", "size": "custom", "position": "center" },
+          "padding": "0px",
+          "anchor": "",
+          "_meta": { "htmlID": "u_row_4", "htmlClassNames": "u_row" }
+        }
+      }
+    ],
+    "headers": [],
+    "footers": [],
+    "values": {
+      "popupPosition": "center",
+      "popupWidth": "600px",
+      "popupHeight": "auto",
+      "borderRadius": "10px",
+      "contentAlign": "center",
+      "contentVerticalAlign": "center",
+      "contentWidth": "600px",
+      "fontFamily": { "label": "DM Sans", "value": "'DM Sans',sans-serif" },
+      "textColor": "#111827",
+      "popupBackgroundColor": "#FFFFFF",
+      "popupOverlay_backgroundColor": "rgba(0, 0, 0, 0.1)",
+      "popupCloseButton_position": "top-right",
+      "popupCloseButton_backgroundColor": "#DDDDDD",
+      "popupCloseButton_iconColor": "#000000",
+      "popupCloseButton_borderRadius": "0px",
+      "popupCloseButton_margin": "0px",
+      "popupCloseButton_action": { "name": "close_popup", "attrs": { "onClick": "document.querySelector('.u-teleport-target').remove();" } },
+      "backgroundColor": "#F8F9FA",
+      "preheaderText": "Bem-vindo(a) \u00e0 {{store_name}}! Confira nossas novidades.",
+      "linkStyle": { "body": true, "linkColor": "#F97316", "linkHoverColor": "#EA580C", "linkUnderline": true, "linkHoverUnderline": true },
+      "_meta": { "htmlID": "u_body", "htmlClassNames": "u_body" }
+    }
+  }
+}

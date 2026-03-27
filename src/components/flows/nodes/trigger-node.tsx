@@ -10,12 +10,12 @@ export function TriggerNode({ data, selected }: { data: Record<string, unknown>;
   return (
     <div
       className={`min-w-[200px] rounded-lg border-2 bg-white p-4 shadow-sm ${
-        selected ? "border-purple-600 ring-2 ring-purple-200" : "border-purple-500"
+        selected ? "border-brand-600 ring-2 ring-brand-200" : "border-brand-500"
       }`}
     >
       <div className="flex items-center gap-2">
-        <div className="rounded-md bg-purple-50 p-1.5">
-          <Zap size={18} className="text-purple-600" />
+        <div className="rounded-md bg-brand-50 p-1.5">
+          <Zap size={18} className="text-brand-600" />
         </div>
         <div>
           <p className="text-xs font-medium text-gray-500">Trigger</p>
@@ -25,7 +25,7 @@ export function TriggerNode({ data, selected }: { data: Record<string, unknown>;
       {label && (
         <p className="mt-2 text-xs text-gray-500 truncate">{label}</p>
       )}
-      <Handle type="source" position={Position.Bottom} className="!bg-purple-500 !w-3 !h-3" />
+      <Handle type="source" position={Position.Bottom} className="!bg-brand-500 !w-3 !h-3" />
     </div>
   );
 }

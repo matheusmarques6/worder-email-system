@@ -49,8 +49,12 @@ export interface Flow {
   store_id: string
   name: string
   trigger_type: string
+  trigger_config: Record<string, unknown>
+  flow_definition: Record<string, unknown>
   status: "draft" | "live" | "paused"
-  definition: Record<string, unknown> | null
+  total_entered: number
+  total_completed: number
+  total_emails_sent: number
   created_at: string
   updated_at: string
 }

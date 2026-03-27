@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No domain configured" }, { status: 400 });
     }
 
-    const { data, error } = await getResend().domains.verify(store.resend_domain_id);
+    const { error } = await getResend().domains.verify(store.resend_domain_id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });

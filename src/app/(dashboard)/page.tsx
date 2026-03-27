@@ -53,7 +53,6 @@ export default async function DashboardPage() {
 
   return (
     <DashboardContent
-      storeName={store.name}
       totalContacts={totalContacts || 0}
       totalEmailsSent={totalEmailsSent || 0}
       activeFlows={activeFlows || 0}

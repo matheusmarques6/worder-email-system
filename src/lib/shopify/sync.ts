@@ -1,12 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const SHOPIFY_API_VERSION = "2026-01";
+
 async function shopifyFetch(
   shop: string,
   accessToken: string,
   path: string
 ) {
   const response = await fetch(
-    `https://${shop}/admin/api/2024-01/${path}`,
+    `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/${path}`,
     {
       headers: {
         "X-Shopify-Access-Token": accessToken,
@@ -22,9 +24,10 @@ export async function syncCustomers(
   shop: string,
   accessToken: string,
   storeId: string
-) {
+): Promise<number> {
   const supabase = createAdminClient();
   let nextPageUrl: string | null = `customers.json?limit=250`;
+  let synced = 0;
 
   while (nextPageUrl) {
     const data = await shopifyFetch(shop, accessToken, nextPageUrl);
@@ -47,23 +50,26 @@ export async function syncCustomers(
         },
         { onConflict: "store_id,email" }
       );
+      synced++;
     }
 
-    // Simple pagination - check if we got a full page
     nextPageUrl =
       customers.length === 250
         ? `customers.json?limit=250&since_id=${customers[customers.length - 1].id}`
         : null;
   }
+
+  return synced;
 }
 
 export async function syncProducts(
   shop: string,
   accessToken: string,
   storeId: string
-) {
+): Promise<number> {
   const supabase = createAdminClient();
   let nextPageUrl: string | null = `products.json?limit=250`;
+  let synced = 0;
 
   while (nextPageUrl) {
     const data = await shopifyFetch(shop, accessToken, nextPageUrl);
@@ -87,6 +93,7 @@ export async function syncProducts(
         },
         { onConflict: "store_id,shopify_product_id" }
       );
+      synced++;
     }
 
     nextPageUrl =
@@ -94,15 +101,18 @@ export async function syncProducts(
         ? `products.json?limit=250&since_id=${products[products.length - 1].id}`
         : null;
   }
+
+  return synced;
 }
 
 export async function syncOrders(
   shop: string,
   accessToken: string,
   storeId: string
-) {
+): Promise<number> {
   const supabase = createAdminClient();
   let nextPageUrl: string | null = `orders.json?limit=250&status=any`;
+  let synced = 0;
 
   while (nextPageUrl) {
     const data = await shopifyFetch(shop, accessToken, nextPageUrl);
@@ -130,6 +140,7 @@ export async function syncOrders(
           },
           created_at: order.created_at,
         });
+        synced++;
       }
     }
 
@@ -138,4 +149,6 @@ export async function syncOrders(
         ? `orders.json?limit=250&status=any&since_id=${orders[orders.length - 1].id}`
         : null;
   }
+
+  return synced;
 }

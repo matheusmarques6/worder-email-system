@@ -21,7 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
 interface DashboardContentProps {
-  storeName: string;
   totalContacts: number;
   totalEmailsSent: number;
   activeFlows: number;

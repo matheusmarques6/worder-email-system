@@ -22,7 +22,7 @@ interface FlowExecutionRow {
 
 export async function GET() {
   try {
-    const db = supabaseAdmin();
+    const db = supabaseAdmin;
     // Find waiting executions that are ready to advance
     const { data, error } = await db
       .from("flow_executions")

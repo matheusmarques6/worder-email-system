@@ -6,7 +6,7 @@ export async function evaluateCondition(
   contactId: string,
   storeId: string
 ): Promise<boolean> {
-  const db = supabaseAdmin();
+  const db = supabaseAdmin;
   switch (condition.type) {
     case "has_placed_order": {
       const { count } = await db

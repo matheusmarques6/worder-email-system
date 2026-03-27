@@ -1,23 +1,10 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-const publicPaths = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/api/webhooks",
-  "/api/t",
-  "/api/track",
-  "/api/unsubscribe",
-  "/api/forms/submit",
-]
-
-function isPublicPath(pathname: string) {
-  return publicPaths.some((path) => pathname.startsWith(path))
-}
-
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,10 +15,12 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({
+            request,
+          })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -44,15 +33,25 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
+  const pathname = request.nextUrl.pathname
 
-  if (!user && !isPublicPath(pathname)) {
+  // Public routes that don't require auth
+  const publicRoutes = ["/login", "/register", "/forgot-password"]
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route))
+  const isApiPublic =
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/t") ||
+    pathname.startsWith("/api/track") ||
+    pathname.startsWith("/api/unsubscribe") ||
+    pathname.startsWith("/api/forms/submit")
+
+  if (!user && !isPublicRoute && !isApiPublic) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === "/login" || pathname === "/register")) {
+  if (user && isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     return NextResponse.redirect(url)

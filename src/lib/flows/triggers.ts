@@ -4,7 +4,7 @@ export async function findFlowsForEvent(
   storeId: string,
   eventType: string
 ) {
-  const db = supabaseAdmin();
+  const db = supabaseAdmin;
   const { data: flows } = await db
     .from("flows")
     .select("*")

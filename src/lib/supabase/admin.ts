@@ -10,10 +10,10 @@ export function createAdminClient(): AdminClient {
   );
 }
 
-// Lazy singleton for supabaseAdmin - avoids calling createClient at module load time
+// Lazy singleton - avoids calling createClient at module load time
 let _admin: AdminClient | null = null;
 
-export function supabaseAdmin(): AdminClient {
+function getAdmin(): AdminClient {
   if (!_admin) {
     _admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,3 +22,10 @@ export function supabaseAdmin(): AdminClient {
   }
   return _admin;
 }
+
+// Export as a getter so `supabaseAdmin.from(...)` works directly
+export const supabaseAdmin = new Proxy({} as AdminClient, {
+  get(_target, prop) {
+    return (getAdmin() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});

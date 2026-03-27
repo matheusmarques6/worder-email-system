@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           }
 
           if (Object.keys(updateData).length > 0) {
-            const db = supabaseAdmin();
+            const db = supabaseAdmin;
             await db
               .from("whatsapp_sends")
               .update(updateData)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { Store } from "@/types"
+import type { Store } from "@/types/database"
 
 export function useStore() {
   const [store, setStore] = useState<Store | null>(null)
@@ -24,7 +24,7 @@ export function useStore() {
         .eq("user_id", user.id)
         .single()
 
-      setStore(data)
+      setStore(data as Store | null)
       setLoading(false)
     }
 

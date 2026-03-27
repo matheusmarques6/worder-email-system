@@ -4,6 +4,9 @@ export interface Store {
   name: string
   shopify_domain: string | null
   shopify_access_token: string | null
+  sender_name: string | null
+  sender_email: string | null
+  reply_to: string | null
   created_at: string
   updated_at: string
 }
@@ -37,8 +40,12 @@ export interface Template {
   id: string
   store_id: string
   name: string
+  category: string | null
+  subject: string | null
   html: string | null
   design_json: Record<string, unknown> | null
+  thumbnail_url: string | null
+  is_prebuilt: boolean
   type: "email" | "whatsapp"
   created_at: string
   updated_at: string

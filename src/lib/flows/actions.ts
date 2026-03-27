@@ -33,7 +33,7 @@ export async function processNode(
   executionId: string,
   nodeId: string
 ): Promise<void> {
-  const db = supabaseAdmin();
+  const db = supabaseAdmin;
   const { data: executionData } = await db
     .from("flow_executions")
     .select("*, flows(*)")
@@ -243,7 +243,7 @@ async function advanceToNext(
 }
 
 async function completeExecution(executionId: string) {
-  const db = supabaseAdmin();
+  const db = supabaseAdmin;
   await db
     .from("flow_executions")
     .update({ status: "completed", current_node_id: null })

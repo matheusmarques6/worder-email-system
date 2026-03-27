@@ -7,7 +7,7 @@ export async function processEvent(
   contactId: string,
   eventData: Record<string, unknown>
 ) {
-  const db = supabaseAdmin();
+  const db = supabaseAdmin;
 
   // Find all live flows matching this event
   const { data: flows, error } = await db

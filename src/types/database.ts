@@ -4,6 +4,10 @@ export interface Store {
   name: string
   shopify_domain: string | null
   shopify_token: string | null
+  shopify_access_token: string | null
+  sender_name: string | null
+  sender_email: string | null
+  reply_to: string | null
   created_at: string
   updated_at: string
 }

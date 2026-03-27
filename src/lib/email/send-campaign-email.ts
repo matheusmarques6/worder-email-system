@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { prepareEmailHtml, renderMergeTags } from "./render";
+import { prepareEmailHtml, prepareSubject } from "./render";
 import { sendEmail } from "./resend";
 import type { Contact, Store, Template } from "@/types";
 
@@ -59,16 +59,34 @@ export async function sendCampaignEmail(
   // 3. Prepare HTML with tracking
   const html = prepareEmailHtml(
     template.html || "",
-    contact,
-    store,
-    emailSend.id,
-    eventData
+    {
+      contact: {
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+        phone: contact.phone,
+      },
+      store: {
+        name: store.name,
+        url: store.shopify_domain || "",
+      },
+    },
+    emailSend.id
   );
 
   // 4. Render subject with merge tags
-  const subject = renderMergeTags(
+  const subject = prepareSubject(
     template.subject || store.name,
-    mergeData
+    {
+      contact: {
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+      },
+      store: {
+        name: store.name,
+      },
+    }
   );
 
   // 5. Send via Resend

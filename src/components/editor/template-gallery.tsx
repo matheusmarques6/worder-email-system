@@ -42,7 +42,7 @@ export function TemplateGallery({
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
       activeCategory === "Todos" ||
-      t.category.toLowerCase() === activeCategory.toLowerCase();
+      (t.category ?? "").toLowerCase() === activeCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 

@@ -190,3 +190,40 @@ export interface WhatsappSend {
   read_at: string | null;
   created_at: string;
 }
+
+export interface WhatsappTemplate {
+  id: string;
+  store_id: string;
+  name: string;
+  category: "marketing" | "utility" | "authentication";
+  body: string;
+  buttons: { text: string; type: "url" | "phone"; value: string }[];
+  language: string;
+  status: "approved" | "pending" | "rejected";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Media {
+  id: string;
+  store_id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  mime_type: string;
+  created_at: string;
+}
+
+export interface Coupon {
+  id: string;
+  store_id: string;
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  usage_limit: number | null;
+  usage_count: number;
+  expires_at: string | null;
+  status: "active" | "expired" | "disabled";
+  created_at: string;
+  updated_at: string;
+}

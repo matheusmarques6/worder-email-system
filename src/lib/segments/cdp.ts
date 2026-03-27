@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin"
 
-const supabaseAdmin = createAdminClient()
+function getAdmin() {
+  return createAdminClient()
+}
 
 interface OrderData {
   total: number
@@ -27,7 +29,7 @@ export async function enrichContactFromOrder(
   storeId: string,
   orderData: OrderData
 ) {
-  const { data: contact } = await supabaseAdmin
+  const { data: contact } = await getAdmin()
     .from("contacts")
     .select("properties")
     .eq("id", contactId)
@@ -47,7 +49,7 @@ export async function enrichContactFromOrder(
   const firstPurchase = (props.first_purchase_date as string) || now
   const lastPurchase = now
 
-  const { count: orderCount } = await supabaseAdmin
+  const { count: orderCount } = await getAdmin()
     .from("events")
     .select("*", { count: "exact", head: true })
     .eq("contact_id", contactId)
@@ -77,7 +79,7 @@ export async function enrichContactFromOrder(
     predicted_next_order_date: predictedNext,
   }
 
-  await supabaseAdmin
+  await getAdmin()
     .from("contacts")
     .update({ properties: updatedProps })
     .eq("id", contactId)
@@ -89,7 +91,7 @@ export async function enrichContactFromProductView(
   storeId: string,
   productData: ProductViewData
 ) {
-  const { data: contact } = await supabaseAdmin
+  const { data: contact } = await getAdmin()
     .from("contacts")
     .select("properties")
     .eq("id", contactId)
@@ -122,7 +124,7 @@ export async function enrichContactFromProductView(
     most_viewed_category: mostViewedCategory,
   }
 
-  await supabaseAdmin
+  await getAdmin()
     .from("contacts")
     .update({ properties: updatedProps })
     .eq("id", contactId)
@@ -133,7 +135,7 @@ export async function getContactInsights(
   contactId: string,
   storeId: string
 ): Promise<ContactInsights> {
-  const { data: contact } = await supabaseAdmin
+  const { data: contact } = await getAdmin()
     .from("contacts")
     .select("*")
     .eq("id", contactId)
@@ -164,7 +166,7 @@ export async function getContactInsights(
   else if (totalOrders >= 2) frequency = "Recorrente"
   else if (totalOrders === 1) frequency = "Primeiro pedido"
 
-  const { count: emailOpens } = await supabaseAdmin
+  const { count: emailOpens } = await getAdmin()
     .from("events")
     .select("*", { count: "exact", head: true })
     .eq("contact_id", contactId)

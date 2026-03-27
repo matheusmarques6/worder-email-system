@@ -19,6 +19,11 @@ import {
   MessageCircle,
   Menu,
   X,
+  FileText,
+  MessageSquare,
+  Package,
+  Image,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +39,18 @@ const navItems: NavItem[] = [
   { label: "Campanhas", href: "/campaigns", icon: Mail },
   { label: "Automações", href: "/flows", icon: Zap },
   { label: "Templates", href: "/templates", icon: LayoutTemplate },
+  {
+    label: "Conteúdo",
+    href: "/content",
+    icon: FileText,
+    children: [
+      { label: "Templates Email", href: "/content/templates" },
+      { label: "Templates WhatsApp", href: "/content/whatsapp-templates" },
+      { label: "Produtos", href: "/content/products" },
+      { label: "Mídia", href: "/content/media" },
+      { label: "Cupons", href: "/content/coupons" },
+    ],
+  },
   {
     label: "Audiência",
     href: "/audience",
@@ -58,6 +75,11 @@ const navItems: NavItem[] = [
 ];
 
 const childIcons: Record<string, React.ElementType> = {
+  "/content/templates": LayoutTemplate,
+  "/content/whatsapp-templates": MessageSquare,
+  "/content/products": Package,
+  "/content/media": Image,
+  "/content/coupons": Ticket,
   "/audience/profiles": UserCircle,
   "/audience/segments": ListFilter,
   "/audience/lists": List,
@@ -69,6 +91,7 @@ const childIcons: Record<string, React.ElementType> = {
 export function Sidebar() {
   const pathname = usePathname();
   const [expandedSections, setExpandedSections] = useState<string[]>([
+    "/content",
     "/audience",
     "/settings",
   ]);

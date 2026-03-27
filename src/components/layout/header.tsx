@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react"
 
 const routeLabels: Record<string, string> = {
   "": "Dashboard",
+  inbox: "Inbox",
   campaigns: "Campanhas",
   flows: "Automações",
   templates: "Templates",

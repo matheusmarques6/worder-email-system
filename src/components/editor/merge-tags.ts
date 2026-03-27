@@ -1,0 +1,18 @@
+export const mergeTags = {
+  first_name: { name: "Primeiro nome", value: "{{first_name}}", sample: "Maria" },
+  last_name: { name: "Sobrenome", value: "{{last_name}}", sample: "Silva" },
+  email: { name: "Email", value: "{{email}}", sample: "maria@email.com" },
+  phone: { name: "Telefone", value: "{{phone}}", sample: "(11) 99999-9999" },
+  store_name: { name: "Nome da loja", value: "{{store_name}}", sample: "Minha Loja" },
+  store_url: { name: "URL da loja", value: "{{store_url}}", sample: "https://minhaloja.com.br" },
+  order_number: { name: "Número do pedido", value: "{{order_number}}", sample: "#1234" },
+  order_total: { name: "Total do pedido", value: "{{order_total}}", sample: "R$ 199,90" },
+  order_tracking_url: { name: "URL de rastreio", value: "{{order_tracking_url}}", sample: "https://rastreio.correios.com.br/AB123456789BR" },
+  cart_total: { name: "Total do carrinho", value: "{{cart_total}}", sample: "R$ 299,90" },
+  cart_url: { name: "URL do carrinho", value: "{{cart_url}}", sample: "https://minhaloja.com.br/cart" },
+  cart_items: { name: "Itens do carrinho", value: "{{cart_items}}", sample: "Camiseta Preta, Calça Jeans" },
+  product_name: { name: "Nome do produto", value: "{{product_name}}", sample: "Camiseta Premium" },
+  product_price: { name: "Preço do produto", value: "{{product_price}}", sample: "R$ 89,90" },
+  product_image: { name: "Imagem do produto", value: "{{product_image}}", sample: "https://via.placeholder.com/300x300" },
+  product_url: { name: "URL do produto", value: "{{product_url}}", sample: "https://minhaloja.com.br/produto/camiseta" },
+}

@@ -4,16 +4,15 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
@@ -24,11 +23,7 @@ export default function LoginPage() {
     })
 
     if (error) {
-      toast({
-        title: "Erro ao entrar",
-        description: error.message,
-        variant: "destructive",
-      })
+      toast.error("Email ou senha inválidos")
       setLoading(false)
       return
     }
@@ -38,62 +33,56 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
-      <div className="text-center mb-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold">
           <span className="text-gray-900">Convertfy</span>{" "}
           <span className="text-brand-500">Mail</span>
         </h1>
+        <p className="mt-2 text-sm text-gray-500">Entrar na sua conta</p>
       </div>
 
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">
-        Entrar na sua conta
-      </h2>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
             Email
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
             placeholder="seu@email.com"
             required
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
             Senha
           </label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-            placeholder="Sua senha"
+            placeholder="••••••••"
             required
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-lg px-4 py-2.5 text-sm disabled:opacity-50 transition-colors"
+          className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
 
-      <p className="text-sm text-gray-500 text-center mt-6">
+      <p className="mt-4 text-center text-sm text-gray-500">
         Não tem uma conta?{" "}
-        <Link
-          href="/register"
-          className="text-brand-500 hover:text-brand-600 font-medium"
-        >
+        <Link href="/register" className="font-medium text-brand-500 hover:text-brand-600">
           Criar conta grátis
         </Link>
       </p>

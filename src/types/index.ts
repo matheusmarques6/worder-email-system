@@ -9,6 +9,10 @@ export interface Store {
   sender_name: string | null;
   sender_email: string | null;
   reply_to: string | null;
+  sending_domain: string | null;
+  resend_domain_id: string | null;
+  domain_verified: boolean;
+  settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -26,11 +30,14 @@ export interface Contact {
   tags: string[];
   consent_email: "subscribed" | "unsubscribed" | "bounced";
   consent_whatsapp: "subscribed" | "unsubscribed";
+  subscribed: boolean;
+  source: string | null;
   total_spent: number;
   total_orders: number;
+  avg_order_value: number;
   last_order_at: string | null;
   shopify_customer_id: string | null;
-  properties: Record<string, string>;
+  properties: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -54,7 +61,7 @@ export interface Event {
   id: string;
   store_id: string;
   contact_id: string;
-  type: string;
+  event_type: string;
   data: Record<string, unknown>;
   created_at: string;
 }
@@ -74,7 +81,10 @@ export interface ListMember {
   id: string;
   list_id: string;
   contact_id: string;
+  store_id?: string;
+  status?: "active" | "unsubscribed";
   created_at: string;
+  contact?: Contact;
 }
 
 export interface Template {
@@ -95,6 +105,8 @@ export interface Segment {
   id: string;
   store_id: string;
   name: string;
+  description: string | null;
+  rules: string | null;
   conditions: Record<string, unknown>;
   contact_count: number;
   is_prebuilt: boolean;
@@ -123,6 +135,7 @@ export interface Campaign {
   total_bounced: number;
   total_unsubscribed: number;
   tags: string[];
+  stats: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

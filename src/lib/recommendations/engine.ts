@@ -22,7 +22,7 @@ export async function getRecommendationsForContact(
       .select("properties")
       .eq("contact_id", contactId)
       .eq("store_id", storeId)
-      .eq("type", "placed_order")
+      .eq("event_type", "placed_order")
       .order("created_at", { ascending: false })
       .limit(5)
 
@@ -77,7 +77,7 @@ export async function getPopularProducts(
       .from("events")
       .select("properties")
       .eq("store_id", storeId)
-      .eq("type", "placed_order")
+      .eq("event_type", "placed_order")
       .gte("created_at", thirtyDaysAgo.toISOString())
 
     if (!events || events.length === 0) {
@@ -157,7 +157,7 @@ export async function getBrowseBasedRecommendations(
       .select("properties")
       .eq("contact_id", contactId)
       .eq("store_id", storeId)
-      .eq("type", "viewed_product")
+      .eq("event_type", "viewed_product")
       .gte("created_at", sevenDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(20)
@@ -181,7 +181,7 @@ export async function getBrowseBasedRecommendations(
       .select("properties")
       .eq("contact_id", contactId)
       .eq("store_id", storeId)
-      .eq("type", "placed_order")
+      .eq("event_type", "placed_order")
 
     const purchasedIds = new Set<string>()
     if (orders) {

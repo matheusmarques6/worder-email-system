@@ -34,17 +34,7 @@ import {
 } from "@/components/ui/table"
 import { ContactTimeline } from "@/components/contacts/contact-timeline"
 
-interface ContactWithStats extends Contact {
-  total_spent?: number
-  total_orders?: number
-  tags?: string[]
-  city?: string | null
-  state?: string | null
-  country?: string | null
-  consent_email?: string
-  consent_whatsapp?: string
-  properties?: Record<string, unknown>
-}
+type ContactWithStats = Contact
 
 interface Event {
   id: string

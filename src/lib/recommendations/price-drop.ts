@@ -19,7 +19,7 @@ export async function checkPriceDrops(storeId: string): Promise<PriceDropAlert[]
       .from("events")
       .select("properties")
       .eq("store_id", storeId)
-      .eq("type", "product_price_snapshot")
+      .eq("event_type", "product_price_snapshot")
       .order("created_at", { ascending: false })
 
     if (!snapshots || snapshots.length === 0) return []
@@ -88,7 +88,7 @@ export async function snapshotPrices(storeId: string): Promise<number> {
     const now = new Date().toISOString()
     const events = products.map((p) => ({
       store_id: storeId,
-      type: "product_price_snapshot",
+      event_type: "product_price_snapshot",
       properties: {
         product_id: p.id,
         price: p.price,

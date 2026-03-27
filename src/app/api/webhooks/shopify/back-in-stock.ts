@@ -30,7 +30,7 @@ export async function handleBackInStock(
       .from("events")
       .select("contact_id")
       .eq("store_id", storeId)
-      .eq("type", "back_in_stock_request")
+      .eq("event_type", "back_in_stock_request")
       .filter("properties->>product_id", "eq", shopifyProductId)
 
     if (!requests || requests.length === 0) return { notified: 0 }
@@ -43,7 +43,7 @@ export async function handleBackInStock(
       await supabase.from("events").insert({
         contact_id: contactId,
         store_id: storeId,
-        type: "back_in_stock_available",
+        event_type: "back_in_stock_available",
         properties: {
           product_id: shopifyProductId,
           product_title: product.title,
@@ -60,7 +60,7 @@ export async function handleBackInStock(
       .from("events")
       .delete()
       .eq("store_id", storeId)
-      .eq("type", "back_in_stock_request")
+      .eq("event_type", "back_in_stock_request")
       .filter("properties->>product_id", "eq", shopifyProductId)
 
     return { notified }

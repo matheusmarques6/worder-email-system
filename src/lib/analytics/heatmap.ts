@@ -24,7 +24,7 @@ export async function getClickMap(campaignId: string): Promise<ClickMapEntry[]> 
     const { data: clicks } = await supabase
       .from("events")
       .select("properties")
-      .eq("type", "email_clicked")
+      .eq("event_type", "email_clicked")
       .in("email_send_id", sendIds)
 
     if (!clicks || clicks.length === 0) return []

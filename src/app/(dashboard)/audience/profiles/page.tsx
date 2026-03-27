@@ -11,17 +11,7 @@ import { ContactsTable } from "@/components/contacts/contacts-table"
 import { ImportCSV } from "@/components/contacts/import-csv"
 import type { Contact } from "@/types/database"
 
-interface ContactWithStats extends Contact {
-  total_spent?: number
-  total_orders?: number
-  tags?: string[]
-  city?: string | null
-  state?: string | null
-  country?: string | null
-  consent_email?: string
-  consent_whatsapp?: string
-  properties?: Record<string, unknown>
-}
+type ContactWithStats = Contact
 
 const PAGE_SIZE = 20
 

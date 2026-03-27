@@ -47,7 +47,7 @@ export default function AttributionPage() {
 
   useEffect(() => {
     if (store) {
-      const storeSettings = (store as unknown as Record<string, unknown>).settings as
+      const storeSettings = store.settings as
         | Record<string, unknown>
         | undefined
       if (storeSettings?.attribution) {
@@ -72,7 +72,7 @@ export default function AttributionPage() {
         .from("stores")
         .update({
           settings: {
-            ...((store as unknown as Record<string, unknown>).settings as Record<string, unknown> ?? {}),
+            ...(store.settings as Record<string, unknown> ?? {}),
             attribution: {
               email: settings.email,
               sms: settings.sms,

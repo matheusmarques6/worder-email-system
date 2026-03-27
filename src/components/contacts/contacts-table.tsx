@@ -33,17 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-interface ContactWithStats extends Contact {
-  total_spent?: number
-  total_orders?: number
-  tags?: string[]
-  city?: string | null
-  state?: string | null
-  country?: string | null
-  consent_email?: string
-  consent_whatsapp?: string
-  properties?: Record<string, unknown>
-}
+type ContactWithStats = Contact
 
 interface ContactsTableProps {
   contacts: ContactWithStats[]
@@ -143,7 +133,7 @@ export function ContactsTable({
         </Badge>
       )
     }
-    if (contact.consent_email === "pending") {
+    if (contact.consent_email === "bounced") {
       return (
         <Badge className="bg-gray-100 text-gray-600 border-gray-200">
           Pendente

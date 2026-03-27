@@ -122,7 +122,7 @@ export async function syncOrders(
         await supabase.from("events").insert({
           store_id: storeId,
           contact_id: contact.id,
-          type: "placed_order",
+          event_type: "placed_order",
           data: {
             order_id: order.id,
             order_number: order.order_number,

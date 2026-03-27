@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { sendCampaignEmail } from "@/lib/email/send-campaign-email";
 import { resolveSegment } from "@/lib/segments/resolver";
 import type { Contact, Store, Template } from "@/types";
 
 export async function POST(request: NextRequest) {
+  // Authenticate user
+  const authSupabase = await createClient();
+  const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json();
   const { campaignId } = body;
 
@@ -19,6 +27,18 @@ export async function POST(request: NextRequest) {
 
   if (!campaign) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  }
+
+  // Verify user owns the campaign's store
+  const { data: userStore } = await supabase
+    .from("stores")
+    .select("id")
+    .eq("id", campaign.store_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!userStore) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Get template

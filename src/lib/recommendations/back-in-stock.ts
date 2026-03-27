@@ -20,7 +20,7 @@ export async function checkBackInStock(storeId: string): Promise<BackInStockAler
       .from("events")
       .select("contact_id, properties")
       .eq("store_id", storeId)
-      .eq("type", "back_in_stock_request")
+      .eq("event_type", "back_in_stock_request")
 
     if (!requests || requests.length === 0) return []
 
@@ -82,7 +82,7 @@ export async function requestBackInStock(
     const { error } = await supabase.from("events").insert({
       contact_id: contactId,
       store_id: storeId,
-      type: "back_in_stock_request",
+      event_type: "back_in_stock_request",
       properties: { product_id: productId },
       created_at: new Date().toISOString(),
     })

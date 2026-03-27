@@ -57,6 +57,18 @@ export async function processNode(
 
           await supabase.rpc("increment_flow_emails", {
             p_flow_id: execution.flow_id,
+          }).then(async (rpcResult) => {
+            if (rpcResult.error) {
+              const { data: currentFlow } = await supabase
+                .from("flows")
+                .select("total_emails_sent")
+                .eq("id", execution.flow_id)
+                .single();
+              await supabase
+                .from("flows")
+                .update({ total_emails_sent: ((currentFlow?.total_emails_sent as number) ?? 0) + 1 })
+                .eq("id", execution.flow_id);
+            }
           });
         }
       }
@@ -156,6 +168,18 @@ export async function processNode(
 
   await supabase.rpc("increment_flow_completed", {
     p_flow_id: execution.flow_id,
+  }).then(async (rpcResult) => {
+    if (rpcResult.error) {
+      const { data: currentFlow } = await supabase
+        .from("flows")
+        .select("total_completed")
+        .eq("id", execution.flow_id)
+        .single();
+      await supabase
+        .from("flows")
+        .update({ total_completed: ((currentFlow?.total_completed as number) ?? 0) + 1 })
+        .eq("id", execution.flow_id);
+    }
   });
 }
 

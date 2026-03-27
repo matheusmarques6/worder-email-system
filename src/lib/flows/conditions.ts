@@ -14,7 +14,7 @@ export async function evaluateCondition(
         .select("*", { count: "exact", head: true })
         .eq("store_id", storeId)
         .eq("contact_id", contactId)
-        .eq("type", "placed_order");
+        .eq("event_type", "placed_order");
       return (count || 0) > 0;
     }
 

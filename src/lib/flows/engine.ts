@@ -70,7 +70,19 @@ export async function processEvent(
 
     if (execution) {
       // Increment flow entered count
-      await supabase.rpc("increment_flow_entered", { p_flow_id: flow.id });
+      await supabase.rpc("increment_flow_entered", { p_flow_id: flow.id }).then(async (rpcResult) => {
+        if (rpcResult.error) {
+          const { data: currentFlow } = await supabase
+            .from("flows")
+            .select("total_entered")
+            .eq("id", flow.id)
+            .single();
+          await supabase
+            .from("flows")
+            .update({ total_entered: ((currentFlow?.total_entered as number) ?? 0) + 1 })
+            .eq("id", flow.id);
+        }
+      });
 
       await processNode(execution, firstNode, definition, supabase);
     }

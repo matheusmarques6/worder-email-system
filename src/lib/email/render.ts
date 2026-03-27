@@ -1,3 +1,5 @@
+import { processConditionalBlocks } from "@/lib/email/conditional-content";
+
 /**
  * Render merge tags in HTML content
  * Supports {{tag}} and {{tag|fallback}} syntax
@@ -97,7 +99,9 @@ export function prepareEmailHtml(
     ...eventData,
   };
 
-  let result = renderMergeTags(html, data);
+  // Process conditional blocks before merge tag replacement
+  let result = processConditionalBlocks(html, contact, { name: store.name });
+  result = renderMergeTags(result, data);
   result = rewriteUrlsForTracking(result, emailSendId, baseUrl);
   result = injectOpenPixel(result, emailSendId, baseUrl);
   result = addUnsubscribeLink(result, emailSendId, baseUrl);

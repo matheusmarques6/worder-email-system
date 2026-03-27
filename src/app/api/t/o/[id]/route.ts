@@ -29,7 +29,7 @@ export async function GET(
       await supabase.from("events").insert({
         store_id: emailSend.store_id,
         contact_id: emailSend.contact_id,
-        type: "email_opened",
+        event_type: "email_opened",
         data: { email_send_id: id },
       });
     }

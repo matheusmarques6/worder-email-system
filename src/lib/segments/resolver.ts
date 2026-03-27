@@ -28,7 +28,7 @@ async function resolveEventFilters(
       .from("events")
       .select("contact_id")
       .eq("store_id", storeId)
-      .eq("event_name", filter.eventName)
+      .eq("event_type", filter.eventName)
 
     // Apply timeframe constraint if specified
     if (filter.timeframeDays !== undefined && filter.timeframeDays > 0) {

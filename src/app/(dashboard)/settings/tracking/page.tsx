@@ -31,7 +31,7 @@ export default function TrackingPage() {
 
   useEffect(() => {
     if (store) {
-      const storeSettings = (store as unknown as Record<string, unknown>).settings as
+      const storeSettings = store.settings as
         | Record<string, unknown>
         | undefined
       if (storeSettings?.tracking) {
@@ -57,7 +57,7 @@ export default function TrackingPage() {
         .from("stores")
         .update({
           settings: {
-            ...((store as unknown as Record<string, unknown>).settings as Record<string, unknown> ?? {}),
+            ...(store.settings as Record<string, unknown> ?? {}),
             tracking: {
               track_opens: settings.trackOpens,
               track_clicks: settings.trackClicks,

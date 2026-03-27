@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { sendCampaignEmail } from "@/lib/email/send-campaign-email"
+import type { Contact, Store, Template } from "@/types"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,34 +23,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
     }
 
+    const template = campaign.templates as unknown as Template
+    const store = campaign.stores as unknown as Store
+
+    if (!template?.html) {
+      return NextResponse.json({ error: "Campaign has no template or HTML" }, { status: 400 })
+    }
+
     // 2. Resolve contacts based on list_id or segment_id
-    let contacts: { id: string; email: string; first_name: string | null }[] = []
+    let contacts: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; subscribed: boolean }[] = []
 
     if (campaign.list_id) {
       const { data } = await supabase
         .from("list_members")
-        .select("contacts(id, email, first_name)")
+        .select("contacts(id, email, first_name, last_name, phone, subscribed)")
         .eq("list_id", campaign.list_id)
 
       contacts = (data ?? [])
-        .map((m: Record<string, unknown>) => m.contacts as { id: string; email: string; first_name: string | null })
+        .map((m: Record<string, unknown>) => m.contacts as typeof contacts[0])
         .filter(Boolean)
     } else if (campaign.segment_id) {
-      // For now, return empty - segment resolution will be implemented later
-      contacts = []
+      const { resolveSegmentContacts } = await import("@/lib/segments/resolver")
+      contacts = await resolveSegmentContacts(campaign.segment_id, campaign.store_id)
+    } else {
+      // No list or segment, send to all subscribed contacts in the store
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, email, first_name, last_name, phone, subscribed")
+        .eq("store_id", campaign.store_id)
+        .eq("subscribed", true)
+
+      contacts = data ?? []
     }
 
     // 3. Filter subscribed only
-    if (contacts.length > 0) {
-      const contactIds = contacts.map(c => c.id)
-      const { data: subscribedContacts } = await supabase
-        .from("contacts")
-        .select("id, email, first_name")
-        .in("id", contactIds)
-        .eq("subscribed", true)
-
-      contacts = subscribedContacts ?? []
-    }
+    contacts = contacts.filter(c => c.subscribed !== false)
 
     // 4. Exclude unengaged if option set
     if (campaign.exclude_unengaged && contacts.length > 0) {
@@ -68,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Smart sending filter
+    // 5. Smart sending filter (skip contacts who received email in last 16h)
     if (campaign.smart_sending && contacts.length > 0) {
       const sixteenHoursAgo = new Date()
       sixteenHoursAgo.setHours(sixteenHoursAgo.getHours() - 16)
@@ -85,58 +94,55 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (contacts.length === 0) {
+      return NextResponse.json({ error: "No eligible contacts to send to" }, { status: 400 })
+    }
+
     // 6. Update campaign to sending
     await supabase
       .from("campaigns")
       .update({ status: "sending" })
       .eq("id", campaignId)
 
-    // 7. Handle A/B test splitting
+    // 7. Send emails - handle A/B testing
     let sentCount = 0
-    const abEnabled = campaign.ab_test_enabled
+    let failedCount = 0
 
-    if (abEnabled && campaign.subject_b) {
+    const sendToContact = async (contact: typeof contacts[0], subjectOverride?: string) => {
+      const templateWithSubject = {
+        ...template,
+        subject: subjectOverride || template.subject,
+      }
+
+      const result = await sendCampaignEmail(
+        contact as unknown as Contact,
+        templateWithSubject,
+        store,
+        campaignId,
+      )
+
+      if (result.success) {
+        sentCount++
+      } else {
+        failedCount++
+      }
+    }
+
+    if (campaign.ab_test_enabled && campaign.subject_b) {
       const splitPct = campaign.ab_split ?? 50
       const splitIndex = Math.floor(contacts.length * (splitPct / 100))
       const groupA = contacts.slice(0, splitIndex)
       const groupB = contacts.slice(splitIndex)
 
-      // Send to group A with subject A
       for (const contact of groupA) {
-        await createEmailSend(supabase, {
-          campaignId,
-          contactId: contact.id,
-          email: contact.email,
-          subject: campaign.subject ?? "",
-          storeId: campaign.store_id,
-          variant: "A",
-        })
-        sentCount++
+        await sendToContact(contact, campaign.subject)
       }
-
-      // Send to group B with subject B
       for (const contact of groupB) {
-        await createEmailSend(supabase, {
-          campaignId,
-          contactId: contact.id,
-          email: contact.email,
-          subject: campaign.subject_b,
-          storeId: campaign.store_id,
-          variant: "B",
-        })
-        sentCount++
+        await sendToContact(contact, campaign.subject_b)
       }
     } else {
-      // Normal send
       for (const contact of contacts) {
-        await createEmailSend(supabase, {
-          campaignId,
-          contactId: contact.id,
-          email: contact.email,
-          subject: campaign.subject ?? "",
-          storeId: campaign.store_id,
-        })
-        sentCount++
+        await sendToContact(contact, campaign.subject)
       }
     }
 
@@ -146,40 +152,14 @@ export async function POST(request: NextRequest) {
       .update({
         status: "sent",
         sent_at: new Date().toISOString(),
-        stats: { sent: sentCount, opened: 0, clicked: 0, bounced: 0, revenue: 0 },
+        total_sent: sentCount,
+        total_failed: failedCount,
       })
       .eq("id", campaignId)
 
-    return NextResponse.json({ success: true, sent_count: sentCount })
+    return NextResponse.json({ success: true, sent_count: sentCount, failed_count: failedCount })
   } catch (err) {
     console.error("Campaign send error:", err)
     return NextResponse.json({ error: "Failed to send campaign" }, { status: 500 })
-  }
-}
-
-async function createEmailSend(
-  supabase: ReturnType<typeof createAdminClient>,
-  params: {
-    campaignId: string
-    contactId: string
-    email: string
-    subject: string
-    storeId: string
-    variant?: string
-  }
-) {
-  const { error } = await supabase.from("email_sends").insert({
-    campaign_id: params.campaignId,
-    contact_id: params.contactId,
-    to_email: params.email,
-    subject: params.subject,
-    store_id: params.storeId,
-    variant: params.variant ?? null,
-    status: "queued",
-    created_at: new Date().toISOString(),
-  })
-
-  if (error) {
-    console.error("Failed to create email_send:", error)
   }
 }

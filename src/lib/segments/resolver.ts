@@ -253,3 +253,18 @@ export async function getSegmentPreviewContacts(
 
   return data ?? []
 }
+
+export async function resolveSegmentContacts(
+  segmentId: string,
+  storeId: string
+) {
+  const contactIds = await resolveSegment(segmentId, storeId)
+  if (contactIds.length === 0) return []
+
+  const { data } = await supabaseAdmin
+    .from("contacts")
+    .select("id, email, first_name, last_name, phone, subscribed")
+    .in("id", contactIds)
+
+  return data ?? []
+}

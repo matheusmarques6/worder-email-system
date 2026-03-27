@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-
-const supabaseAdmin = createAdminClient()
 import { z } from "zod"
 
 const submitSchema = z.object({
@@ -26,6 +24,7 @@ export async function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
+  const supabaseAdmin = createAdminClient()
   try {
     const body = await request.json()
     const parsed = submitSchema.safeParse(body)

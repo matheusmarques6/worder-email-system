@@ -1,7 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin"
-
-const supabaseAdmin = createAdminClient()
 import { buildSupabaseQuery, applyProfileFilters } from "@/lib/segments/query-builder"
+
+function getAdmin() {
+  return createAdminClient()
+}
 import type { EventFilter } from "@/lib/segments/query-builder"
 import type { RuleGroupType } from "react-querybuilder"
 
@@ -22,7 +24,7 @@ async function resolveEventFilters(
 
   for (const filter of eventFilters) {
     // Build query on events table, grouped by contact_id
-    let query = supabaseAdmin
+    let query = getAdmin()
       .from("events")
       .select("contact_id")
       .eq("store_id", storeId)
@@ -69,7 +71,7 @@ async function resolveEventFilters(
         }
       } else {
         // No candidate set; fetch all contacts for the store and exclude those with events
-        const { data: allContacts } = await supabaseAdmin
+        const { data: allContacts } = await getAdmin()
           .from("contacts")
           .select("id")
           .eq("store_id", storeId)
@@ -135,7 +137,7 @@ export async function resolveSegment(
   segmentId: string,
   storeId: string
 ): Promise<string[]> {
-  const { data: segment } = await supabaseAdmin
+  const { data: segment } = await getAdmin()
     .from("segments")
     .select("rules")
     .eq("id", segmentId)
@@ -147,7 +149,7 @@ export async function resolveSegment(
   const rules = JSON.parse(segment.rules) as RuleGroupType
   const { filters, eventFilters, combinator } = buildSupabaseQuery(rules, storeId)
 
-  let query = supabaseAdmin
+  let query = getAdmin()
     .from("contacts")
     .select("id")
     .eq("store_id", storeId)
@@ -175,7 +177,7 @@ export async function countSegment(
 
   // If there are event filters, we can't use head:true count — we need actual IDs
   if (eventFilters.length > 0) {
-    let query = supabaseAdmin
+    let query = getAdmin()
       .from("contacts")
       .select("id")
       .eq("store_id", storeId)
@@ -193,7 +195,7 @@ export async function countSegment(
     return contactIds.length
   }
 
-  let query = supabaseAdmin
+  let query = getAdmin()
     .from("contacts")
     .select("id", { count: "exact", head: true })
     .eq("store_id", storeId)
@@ -214,7 +216,7 @@ export async function getSegmentPreviewContacts(
 
   // If there are event filters, resolve them first to get matching IDs
   if (eventFilters.length > 0) {
-    let idQuery = supabaseAdmin
+    let idQuery = getAdmin()
       .from("contacts")
       .select("id")
       .eq("store_id", storeId)
@@ -235,7 +237,7 @@ export async function getSegmentPreviewContacts(
 
     if (finalIds.length === 0) return []
 
-    const { data } = await supabaseAdmin
+    const { data } = await getAdmin()
       .from("contacts")
       .select("id, email, first_name, last_name")
       .in("id", finalIds.slice(0, limit))
@@ -243,7 +245,7 @@ export async function getSegmentPreviewContacts(
     return data ?? []
   }
 
-  let query = supabaseAdmin
+  let query = getAdmin()
     .from("contacts")
     .select("id, email, first_name, last_name")
     .eq("store_id", storeId)

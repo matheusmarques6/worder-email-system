@@ -1,106 +1,111 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   Mail,
   ShoppingCart,
   Package,
-  Receipt,
-  UserMinus,
-  Star,
-  Crown,
+  RotateCcw,
   Eye,
   ArrowLeft,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { FlowTriggerType } from "@/types/flows";
+} from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { useStore } from "@/hooks/use-store"
+import { Skeleton } from "@/components/ui/skeleton"
 
-interface TemplateOption {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
+interface FlowTemplateCard {
+  index: number
+  name: string
+  description: string
+  icon: React.ElementType
 }
 
-const templates: TemplateOption[] = [
+const flowTemplates: FlowTemplateCard[] = [
   {
-    id: "welcome-series",
-    name: "Welcome Series",
-    description: "Série de boas-vindas para novos inscritos",
+    index: 0,
+    name: "Série de Boas-vindas",
+    description:
+      "Receba novos clientes com um e-mail de boas-vindas e envie um cupom 2 dias depois.",
     icon: Mail,
   },
   {
-    id: "abandoned-cart",
+    index: 1,
     name: "Carrinho Abandonado",
-    description: "Recupere vendas de checkouts incompletos",
+    description:
+      "Recupere vendas enviando lembretes para quem iniciou o checkout mas não finalizou.",
     icon: ShoppingCart,
   },
   {
-    id: "post-purchase",
-    name: "Pós-Compra",
-    description: "Acompanhamento após pedido realizado",
+    index: 2,
+    name: "Pós-compra",
+    description:
+      "Engaje clientes após a compra com e-mail de agradecimento e sugestões de produtos.",
     icon: Package,
   },
   {
-    id: "boleto-recovery",
-    name: "Recuperação Boleto",
-    description: "Lembrete para pagamentos pendentes",
-    icon: Receipt,
+    index: 3,
+    name: "Reativação de Clientes",
+    description:
+      "Reconquiste clientes inativos após 60 dias sem comprar.",
+    icon: RotateCcw,
   },
   {
-    id: "win-back",
-    name: "Win-back",
-    description: "Reengaje clientes inativos",
-    icon: UserMinus,
-  },
-  {
-    id: "review-request",
-    name: "Review Request",
-    description: "Solicite avaliações após entrega",
-    icon: Star,
-  },
-  {
-    id: "vip-upgrade",
-    name: "VIP Upgrade",
-    description: "Boas-vindas ao programa de fidelidade",
-    icon: Crown,
-  },
-  {
-    id: "browse-abandonment",
-    name: "Browse Abandonment",
-    description: "Recupere visitantes que viram produtos",
+    index: 4,
+    name: "Abandono de Navegação",
+    description:
+      "Envie um lembrete para quem visualizou um produto mas não comprou.",
     icon: Eye,
   },
-];
+]
 
 export default function NewFlowPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [triggerType, setTriggerType] = useState<FlowTriggerType>("metric");
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const router = useRouter()
+  const { store, loading: storeLoading } = useStore()
+  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null)
+  const [creating, setCreating] = useState(false)
 
-  const handleCreateFromScratch = () => {
-    router.push("/flows/new-flow-id");
-  };
+  async function handleUseTemplate() {
+    if (selectedTemplate === null || !store) return
+    setCreating(true)
+    try {
+      const res = await fetch("/api/flows/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateIndex: selectedTemplate, storeId: store.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.flow) {
+        toast.error("Erro ao criar automação")
+        return
+      }
+      toast.success("Automação criada!")
+      router.push(`/flows/${json.flow.id}`)
+    } catch {
+      toast.error("Erro ao criar automação")
+    } finally {
+      setCreating(false)
+    }
+  }
 
-  const handleUseTemplate = () => {
-    router.push("/flows/new-flow-id");
-  };
+  if (storeLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div>
         <Link
           href="/flows"
           className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
@@ -109,91 +114,53 @@ export default function NewFlowPage() {
           Voltar para Automações
         </Link>
         <h1 className="text-2xl font-semibold text-gray-900">Nova Automação</h1>
-      </div>
-
-      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <Label className="text-sm font-medium text-gray-700">
-              Nome da Automação
-            </Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Boas-vindas, Carrinho Abandonado..."
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label className="text-sm font-medium text-gray-700">
-              Tipo de Trigger
-            </Label>
-            <Select
-              value={triggerType}
-              onValueChange={(v) => setTriggerType(v as FlowTriggerType)}
-            >
-              <SelectTrigger className="mt-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="metric">Métrica</SelectItem>
-                <SelectItem value="list">Lista</SelectItem>
-                <SelectItem value="segment">Segmento</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">Templates Prontos</h2>
         <p className="mt-1 text-sm text-gray-500">
           Selecione um template para começar rapidamente
         </p>
       </div>
 
-      <div className="mb-8 grid grid-cols-4 gap-4">
-        {templates.map((template) => {
-          const Icon = template.icon;
-          const isSelected = selectedTemplate === template.id;
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {flowTemplates.map((template) => {
+          const Icon = template.icon
+          const isSelected = selectedTemplate === template.index
           return (
             <div
-              key={template.id}
-              onClick={() => setSelectedTemplate(template.id)}
-              className={`cursor-pointer rounded-lg border p-4 transition-colors hover:border-brand-500 ${
+              key={template.index}
+              onClick={() => setSelectedTemplate(template.index)}
+              className={`cursor-pointer rounded-lg border p-6 transition-all hover:border-[#F26B2A] ${
                 isSelected
-                  ? "border-brand-500 bg-brand-50"
-                  : "border-gray-200 bg-white"
+                  ? "border-[#F26B2A] bg-orange-50 shadow-md"
+                  : "border-gray-200 bg-white shadow-sm"
               }`}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                <Icon size={18} className="text-gray-600" />
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-lg ${
+                  isSelected ? "bg-[#F26B2A] text-white" : "bg-gray-100"
+                }`}
+              >
+                <Icon
+                  size={22}
+                  className={isSelected ? "text-white" : "text-gray-600"}
+                />
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-gray-900">
+              <h3 className="mt-4 text-sm font-semibold text-gray-900">
                 {template.name}
               </h3>
               <p className="mt-1 text-xs text-gray-500">{template.description}</p>
             </div>
-          );
+          )
         })}
       </div>
 
       <div className="flex items-center gap-3">
         <Button
-          onClick={handleCreateFromScratch}
-          variant="outline"
-          className="border-gray-300 text-gray-700"
-        >
-          Criar do Zero
-        </Button>
-        <Button
           onClick={handleUseTemplate}
-          disabled={!selectedTemplate}
-          className="bg-brand-500 hover:bg-brand-600 text-white"
+          disabled={selectedTemplate === null || creating}
+          className="bg-[#F26B2A] hover:bg-[#d95d24] text-white"
         >
-          Usar Template
+          {creating ? "Criando..." : "Usar Template"}
         </Button>
       </div>
     </div>
-  );
+  )
 }

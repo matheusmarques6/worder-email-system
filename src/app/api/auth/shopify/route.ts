@@ -3,15 +3,14 @@ import { generateAuthUrl } from "@/lib/shopify/oauth";
 
 export async function GET(req: NextRequest) {
   const shop = req.nextUrl.searchParams.get("shop");
-  const storeId = req.nextUrl.searchParams.get("store_id");
 
-  if (!shop || !storeId) {
+  if (!shop) {
     return NextResponse.json(
-      { error: "Missing shop or store_id parameter" },
+      { error: "Missing shop parameter" },
       { status: 400 }
     );
   }
 
-  const authUrl = generateAuthUrl(shop, storeId);
+  const authUrl = generateAuthUrl(shop);
   return NextResponse.redirect(authUrl);
 }

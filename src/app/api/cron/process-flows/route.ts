@@ -43,9 +43,61 @@ export async function GET() {
       processed++
     }
 
+    // ---- Process scheduled campaigns ----
+    let campaignsSent = 0
+    const { data: scheduledCampaigns, error: scError } = await db
+      .from("campaigns")
+      .select("id")
+      .eq("status", "scheduled")
+      .lte("scheduled_at", new Date().toISOString())
+      .limit(20)
+
+    if (scError) {
+      console.error("Cron scheduled-campaigns error:", scError)
+    }
+
+    const campaignsToSend = (scheduledCampaigns || []) as Array<{ id: string }>
+
+    for (const campaign of campaignsToSend) {
+      try {
+        // Mark as sending first to avoid double-processing
+        await db
+          .from("campaigns")
+          .update({ status: "sending" })
+          .eq("id", campaign.id)
+          .eq("status", "scheduled")
+
+        // Trigger the campaign send via internal fetch
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        const res = await fetch(`${baseUrl}/api/campaigns/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaignId: campaign.id }),
+        })
+
+        if (res.ok) {
+          campaignsSent++
+        } else {
+          console.error(`Failed to send campaign ${campaign.id}:`, await res.text())
+          // Revert status to scheduled so it can be retried
+          await db
+            .from("campaigns")
+            .update({ status: "scheduled" })
+            .eq("id", campaign.id)
+        }
+      } catch (sendErr) {
+        console.error(`Error sending campaign ${campaign.id}:`, sendErr)
+        await db
+          .from("campaigns")
+          .update({ status: "scheduled" })
+          .eq("id", campaign.id)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       processed,
+      campaigns_sent: campaignsSent,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {

@@ -2,16 +2,10 @@ import { SHOPIFY_API_VERSION } from "@/lib/shopify/oauth";
 
 const WEBHOOK_TOPICS = [
   "orders/create",
-  "orders/paid",
-  "orders/updated",
-  "orders/cancelled",
   "orders/fulfilled",
-  "checkouts/create",
-  "checkouts/update",
   "customers/create",
   "customers/update",
-  "products/update",
-  "refunds/create",
+  "checkouts/create",
 ];
 
 interface ShopifyWebhook {
@@ -28,7 +22,12 @@ interface WebhookCreateResponse {
   webhook: ShopifyWebhook;
 }
 
-async function shopifyFetch<T>(shop: string, accessToken: string, path: string, options?: RequestInit): Promise<T> {
+async function shopifyApiFetch<T>(
+  shop: string,
+  accessToken: string,
+  path: string,
+  options?: RequestInit
+): Promise<T> {
   const url = `https://${shop}/admin/api/${SHOPIFY_API_VERSION}${path}`;
   const response = await fetch(url, {
     ...options,
@@ -40,26 +39,32 @@ async function shopifyFetch<T>(shop: string, accessToken: string, path: string, 
   });
 
   if (!response.ok) {
-    throw new Error(`Shopify API error: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Shopify API error: ${response.status} ${response.statusText}`
+    );
   }
 
   return response.json() as Promise<T>;
 }
 
-export async function registerWebhooks(shop: string, accessToken: string): Promise<void> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const webhookAddress = `${appUrl}/api/webhooks/shopify`;
-
+export async function registerWebhooks(
+  shop: string,
+  accessToken: string,
+  webhookUrl: string
+): Promise<void> {
   // Get existing webhooks
-  const { webhooks: existing } = await shopifyFetch<WebhookListResponse>(
+  const { webhooks: existing } = await shopifyApiFetch<WebhookListResponse>(
     shop,
     accessToken,
     "/webhooks.json"
   );
 
-  // Delete duplicates
+  // Delete duplicates pointing to our URL or matching our topics
   for (const webhook of existing) {
-    if (webhook.address === webhookAddress || WEBHOOK_TOPICS.includes(webhook.topic)) {
+    if (
+      webhook.address === webhookUrl ||
+      WEBHOOK_TOPICS.includes(webhook.topic)
+    ) {
       await fetch(
         `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/webhooks/${webhook.id}.json`,
         {
@@ -70,17 +75,22 @@ export async function registerWebhooks(shop: string, accessToken: string): Promi
     }
   }
 
-  // Register new webhooks
+  // Register new webhooks for all topics
   for (const topic of WEBHOOK_TOPICS) {
-    await shopifyFetch<WebhookCreateResponse>(shop, accessToken, "/webhooks.json", {
-      method: "POST",
-      body: JSON.stringify({
-        webhook: {
-          topic,
-          address: webhookAddress,
-          format: "json",
-        },
-      }),
-    });
+    await shopifyApiFetch<WebhookCreateResponse>(
+      shop,
+      accessToken,
+      "/webhooks.json",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          webhook: {
+            topic,
+            address: webhookUrl,
+            format: "json",
+          },
+        }),
+      }
+    );
   }
 }

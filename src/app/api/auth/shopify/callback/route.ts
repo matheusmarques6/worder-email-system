@@ -6,9 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const shop = req.nextUrl.searchParams.get("shop");
-  const state = req.nextUrl.searchParams.get("state"); // store_id
 
-  if (!code || !shop || !state) {
+  if (!code || !shop) {
     return NextResponse.redirect(
       new URL("/settings/integrations?error=missing_params", req.url)
     );
@@ -18,15 +17,18 @@ export async function GET(req: NextRequest) {
     const accessToken = await exchangeCodeForToken(shop, code);
     const supabase = createAdminClient();
 
+    // Update store with Shopify credentials
     await supabase
       .from("stores")
       .update({
         shopify_domain: shop,
         shopify_access_token: accessToken,
       })
-      .eq("id", state);
+      .eq("shopify_domain", shop);
 
-    await registerWebhooks(shop, accessToken);
+    // Register webhooks
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/shopify`;
+    await registerWebhooks(shop, accessToken, webhookUrl);
 
     return NextResponse.redirect(
       new URL("/settings/integrations?success=true", req.url)

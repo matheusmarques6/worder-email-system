@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { processEvent } from "@/lib/flows/engine";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-function verifyWebhook(body: string, signature: string, secret: string): boolean {
-  const hmac = crypto.createHmac("sha256", secret).update(body, "utf8").digest("base64");
+function verifyWebhook(
+  body: string,
+  signature: string,
+  secret: string
+): boolean {
+  const hmac = crypto
+    .createHmac("sha256", secret)
+    .update(body, "utf8")
+    .digest("base64");
   try {
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(hmac));
   } catch {
@@ -12,10 +20,10 @@ function verifyWebhook(body: string, signature: string, secret: string): boolean
   }
 }
 
-interface Store {
+interface StoreRow {
   id: string;
   shopify_domain: string;
-  webhook_secret?: string;
+  shopify_access_token: string | null;
 }
 
 interface ShopifyAddress {
@@ -45,7 +53,6 @@ interface ShopifyOrder {
   subtotal_price: string;
   total_discounts: string;
   total_tax: string;
-  cancel_reason?: string;
   line_items: ShopifyLineItem[];
   billing_address?: ShopifyAddress;
   shipping_address?: ShopifyAddress;
@@ -54,9 +61,6 @@ interface ShopifyOrder {
     tracking_number?: string;
     tracking_url?: string;
     tracking_company?: string;
-  }>;
-  refunds?: Array<{
-    transactions?: Array<{ amount: string }>;
   }>;
 }
 
@@ -67,7 +71,6 @@ interface ShopifyCheckout {
   abandoned_checkout_url?: string;
   total_price: string;
   line_items: ShopifyLineItem[];
-  billing_address?: ShopifyAddress;
   customer?: { id: number; first_name?: string; last_name?: string };
 }
 
@@ -82,22 +85,9 @@ interface ShopifyCustomer {
   email_marketing_consent?: { state: string };
 }
 
-interface ShopifyProduct {
-  id: number;
-  title: string;
-  handle: string;
-  vendor?: string;
-  product_type?: string;
-  tags?: string;
-  status: string;
-  images?: Array<{ src: string }>;
-  variants?: Array<{ price: string; compare_at_price?: string }>;
-}
-
-interface ShopifyRefund {
-  order_id: number;
-  transactions?: Array<{ amount: string }>;
-}
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 async function upsertContact(
   supabase: SupabaseClient,
@@ -116,7 +106,7 @@ async function upsertContact(
     tags?: string;
     consent_email?: boolean;
   }
-) {
+): Promise<string | undefined> {
   const { data: existing } = await supabase
     .from("contacts")
     .select("id")
@@ -141,7 +131,7 @@ async function upsertContact(
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id);
-    return existing.id;
+    return existing.id as string;
   }
 
   const { data: newContact } = await supabase
@@ -164,14 +154,22 @@ async function upsertContact(
     .select("id")
     .single();
 
-  return newContact?.id;
+  return newContact?.id as string | undefined;
 }
 
-async function handleOrderCreate(supabase: SupabaseClient, store: Store, order: ShopifyOrder) {
+// ---------------------------------------------------------------------------
+// Topic handlers
+// ---------------------------------------------------------------------------
+
+async function handleOrderCreate(
+  supabase: SupabaseClient,
+  storeId: string,
+  order: ShopifyOrder
+) {
   if (!order.email) return;
 
   const billing = order.billing_address;
-  const contactId = await upsertContact(supabase, store.id, order.email, {
+  const contactId = await upsertContact(supabase, storeId, order.email, {
     phone: order.phone || billing?.phone,
     first_name: order.customer?.first_name || billing?.first_name,
     last_name: order.customer?.last_name || billing?.last_name,
@@ -185,28 +183,30 @@ async function handleOrderCreate(supabase: SupabaseClient, store: Store, order: 
 
   if (!contactId) return;
 
+  const eventData = {
+    order_id: order.id,
+    order_number: order.name,
+    total: order.total_price,
+    subtotal: order.subtotal_price,
+    discount: order.total_discounts,
+    tax: order.total_tax,
+    items: order.line_items.map((i) => ({
+      product_id: i.product_id,
+      title: i.title,
+      quantity: i.quantity,
+      price: i.price,
+      sku: i.sku,
+    })),
+    billing_address: order.billing_address,
+    shipping_address: order.shipping_address,
+  };
+
   await supabase.from("events").insert({
-    store_id: store.id,
+    store_id: storeId,
     contact_id: contactId,
     event_type: "placed_order",
     revenue: parseFloat(order.total_price),
-    properties: {
-      order_id: order.id,
-      order_number: order.name,
-      total: order.total_price,
-      subtotal: order.subtotal_price,
-      discount: order.total_discounts,
-      tax: order.total_tax,
-      items: order.line_items.map((i) => ({
-        product_id: i.product_id,
-        title: i.title,
-        quantity: i.quantity,
-        price: i.price,
-        sku: i.sku,
-      })),
-      billing_address: order.billing_address,
-      shipping_address: order.shipping_address,
-    },
+    properties: eventData,
   });
 
   // Update contact metrics
@@ -216,8 +216,9 @@ async function handleOrderCreate(supabase: SupabaseClient, store: Store, order: 
     .eq("id", contactId)
     .single();
 
-  const totalOrders = (contactData?.total_orders || 0) + 1;
-  const totalSpent = (contactData?.total_spent || 0) + parseFloat(order.total_price);
+  const totalOrders = ((contactData?.total_orders as number) || 0) + 1;
+  const totalSpent =
+    ((contactData?.total_spent as number) || 0) + parseFloat(order.total_price);
 
   await supabase
     .from("contacts")
@@ -229,81 +230,48 @@ async function handleOrderCreate(supabase: SupabaseClient, store: Store, order: 
     })
     .eq("id", contactId);
 
-  // Mark abandoned cart as recovered
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: abandonedEvents } = await supabase
-    .from("events")
-    .select("id, properties")
-    .eq("contact_id", contactId)
-    .eq("event_type", "started_checkout")
-    .gte("created_at", twentyFourHoursAgo);
-
-  if (abandonedEvents) {
-    for (const event of abandonedEvents) {
-      await supabase
-        .from("events")
-        .update({
-          properties: { ...((event.properties as Record<string, unknown>) || {}), recovered: true },
-        })
-        .eq("id", event.id);
-    }
-  }
+  // Trigger flow engine
+  await processEvent(storeId, "placed_order", contactId, eventData);
 }
 
-async function handleOrderPaid(supabase: SupabaseClient, store: Store, order: ShopifyOrder) {
+async function handleOrderFulfilled(
+  supabase: SupabaseClient,
+  storeId: string,
+  order: ShopifyOrder
+) {
   if (!order.email) return;
-  const contactId = await upsertContact(supabase, store.id, order.email, {
-    shopify_customer_id: order.customer?.id,
-  });
-  if (!contactId) return;
 
-  await supabase.from("events").insert({
-    store_id: store.id,
-    contact_id: contactId,
-    event_type: "order_paid",
-    properties: { order_id: order.id },
-  });
-}
-
-async function handleOrderFulfilled(supabase: SupabaseClient, store: Store, order: ShopifyOrder) {
-  if (!order.email) return;
-  const contactId = await upsertContact(supabase, store.id, order.email, {
+  const contactId = await upsertContact(supabase, storeId, order.email, {
     shopify_customer_id: order.customer?.id,
   });
   if (!contactId) return;
 
   const fulfillment = order.fulfillments?.[0];
+  const eventData = {
+    order_id: order.id,
+    tracking_number: fulfillment?.tracking_number,
+    tracking_url: fulfillment?.tracking_url,
+    tracking_company: fulfillment?.tracking_company,
+  };
+
   await supabase.from("events").insert({
-    store_id: store.id,
+    store_id: storeId,
     contact_id: contactId,
     event_type: "order_fulfilled",
-    properties: {
-      order_id: order.id,
-      tracking_number: fulfillment?.tracking_number,
-      tracking_url: fulfillment?.tracking_url,
-      tracking_company: fulfillment?.tracking_company,
-    },
+    properties: eventData,
   });
+
+  await processEvent(storeId, "order_fulfilled", contactId, eventData);
 }
 
-async function handleOrderCancelled(supabase: SupabaseClient, store: Store, order: ShopifyOrder) {
-  if (!order.email) return;
-  const contactId = await upsertContact(supabase, store.id, order.email, {
-    shopify_customer_id: order.customer?.id,
-  });
-  if (!contactId) return;
-
-  await supabase.from("events").insert({
-    store_id: store.id,
-    contact_id: contactId,
-    event_type: "order_cancelled",
-    properties: { order_id: order.id, cancel_reason: order.cancel_reason },
-  });
-}
-
-async function handleCheckout(supabase: SupabaseClient, store: Store, checkout: ShopifyCheckout) {
+async function handleCheckout(
+  supabase: SupabaseClient,
+  storeId: string,
+  checkout: ShopifyCheckout
+) {
   if (!checkout.email) return;
-  const contactId = await upsertContact(supabase, store.id, checkout.email, {
+
+  const contactId = await upsertContact(supabase, storeId, checkout.email, {
     phone: checkout.phone,
     first_name: checkout.customer?.first_name,
     last_name: checkout.customer?.last_name,
@@ -311,31 +279,42 @@ async function handleCheckout(supabase: SupabaseClient, store: Store, checkout: 
   });
   if (!contactId) return;
 
+  const eventData = {
+    checkout_token: checkout.token,
+    abandoned_checkout_url: checkout.abandoned_checkout_url,
+    items: checkout.line_items.map((i) => ({
+      product_id: i.product_id,
+      title: i.title,
+      quantity: i.quantity,
+      price: i.price,
+    })),
+    total: checkout.total_price,
+    email: checkout.email,
+  };
+
   await supabase.from("events").insert({
-    store_id: store.id,
+    store_id: storeId,
     contact_id: contactId,
     event_type: "started_checkout",
-    properties: {
-      checkout_token: checkout.token,
-      abandoned_checkout_url: checkout.abandoned_checkout_url,
-      items: checkout.line_items.map((i) => ({
-        product_id: i.product_id,
-        title: i.title,
-        quantity: i.quantity,
-        price: i.price,
-      })),
-      total: checkout.total_price,
-      email: checkout.email,
-    },
+    properties: eventData,
   });
+
+  await processEvent(storeId, "started_checkout", contactId, eventData);
 }
 
-async function handleCustomer(supabase: SupabaseClient, store: Store, customer: ShopifyCustomer) {
+async function handleCustomer(
+  supabase: SupabaseClient,
+  storeId: string,
+  customer: ShopifyCustomer,
+  topic: string
+) {
   if (!customer.email) return;
-  const addr = customer.default_address;
-  const consentEmail = customer.email_marketing_consent?.state === "subscribed";
 
-  await upsertContact(supabase, store.id, customer.email, {
+  const addr = customer.default_address;
+  const consentEmail =
+    customer.email_marketing_consent?.state === "subscribed";
+
+  const contactId = await upsertContact(supabase, storeId, customer.email, {
     phone: customer.phone,
     first_name: customer.first_name,
     last_name: customer.last_name,
@@ -348,64 +327,51 @@ async function handleCustomer(supabase: SupabaseClient, store: Store, customer: 
     tags: customer.tags,
     consent_email: consentEmail,
   });
-}
 
-async function handleProduct(supabase: SupabaseClient, store: Store, product: ShopifyProduct) {
-  const { data: existing } = await supabase
-    .from("products")
-    .select("id")
-    .eq("store_id", store.id)
-    .eq("shopify_product_id", product.id)
-    .single();
+  if (!contactId) return;
 
-  const productData = {
-    store_id: store.id,
-    shopify_product_id: product.id,
-    title: product.title,
-    handle: product.handle,
-    image_url: product.images?.[0]?.src || null,
-    price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : null,
-    compare_at_price: product.variants?.[0]?.compare_at_price
-      ? parseFloat(product.variants[0].compare_at_price)
-      : null,
-    vendor: product.vendor,
-    product_type: product.product_type,
-    tags: product.tags,
-    status: product.status,
-  };
-
-  if (existing) {
-    await supabase.from("products").update(productData).eq("id", existing.id);
-  } else {
-    await supabase.from("products").insert(productData);
-  }
-}
-
-async function handleRefund(supabase: SupabaseClient, store: Store, refund: ShopifyRefund) {
-  const refundAmount = refund.transactions?.reduce(
-    (sum, t) => sum + parseFloat(t.amount),
-    0
-  ) || 0;
+  const eventType =
+    topic === "customers/create" ? "customer_created" : "customer_updated";
 
   await supabase.from("events").insert({
-    store_id: store.id,
-    event_type: "refund_created",
+    store_id: storeId,
+    contact_id: contactId,
+    event_type: eventType,
     properties: {
-      order_id: refund.order_id,
-      refund_amount: refundAmount,
+      shopify_customer_id: customer.id,
+      email: customer.email,
     },
   });
+
+  await processEvent(storeId, eventType, contactId, {
+    shopify_customer_id: customer.id,
+    email: customer.email,
+  });
 }
+
+// ---------------------------------------------------------------------------
+// Main handler
+// ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const topic = req.headers.get("x-shopify-topic") || "";
   const shopDomain = req.headers.get("x-shopify-shop-domain") || "";
+  const hmacHeader = req.headers.get("x-shopify-hmac-sha256") || "";
+
+  // Verify HMAC signature
+  const secret = process.env.SHOPIFY_API_SECRET;
+  if (secret && hmacHeader) {
+    if (!verifyWebhook(body, hmacHeader, secret)) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  }
+
   const supabase = createAdminClient();
 
   const { data: store } = await supabase
     .from("stores")
-    .select("*")
+    .select("id, shopify_domain, shopify_access_token")
     .eq("shopify_domain", shopDomain)
     .single();
 
@@ -413,41 +379,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 });
   }
 
-  if (store.webhook_secret) {
-    const sig = req.headers.get("x-shopify-hmac-sha256") || "";
-    if (!verifyWebhook(body, sig, store.webhook_secret)) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-  }
-
+  const storeId = store.id as string;
   const data = JSON.parse(body);
 
   switch (topic) {
     case "orders/create":
-      await handleOrderCreate(supabase, store as Store, data as ShopifyOrder);
-      break;
-    case "orders/paid":
-      await handleOrderPaid(supabase, store as Store, data as ShopifyOrder);
+      await handleOrderCreate(supabase, storeId, data as ShopifyOrder);
       break;
     case "orders/fulfilled":
-      await handleOrderFulfilled(supabase, store as Store, data as ShopifyOrder);
-      break;
-    case "orders/cancelled":
-      await handleOrderCancelled(supabase, store as Store, data as ShopifyOrder);
-      break;
-    case "checkouts/create":
-    case "checkouts/update":
-      await handleCheckout(supabase, store as Store, data as ShopifyCheckout);
+      await handleOrderFulfilled(supabase, storeId, data as ShopifyOrder);
       break;
     case "customers/create":
     case "customers/update":
-      await handleCustomer(supabase, store as Store, data as ShopifyCustomer);
+      await handleCustomer(
+        supabase,
+        storeId,
+        data as ShopifyCustomer,
+        topic
+      );
       break;
-    case "products/update":
-      await handleProduct(supabase, store as Store, data as ShopifyProduct);
-      break;
-    case "refunds/create":
-      await handleRefund(supabase, store as Store, data as ShopifyRefund);
+    case "checkouts/create":
+      await handleCheckout(supabase, storeId, data as ShopifyCheckout);
       break;
   }
 

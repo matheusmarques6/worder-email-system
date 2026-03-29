@@ -54,7 +54,10 @@ interface StoreRecord {
   shopify_access_token: string;
 }
 
-async function fetchAllPages<T>(
+/**
+ * Fetch all pages of a Shopify REST API resource using Link header pagination.
+ */
+async function shopifyFetch<T>(
   shop: string,
   accessToken: string,
   endpoint: string,
@@ -91,7 +94,7 @@ async function fetchAllPages<T>(
 }
 
 export async function syncCustomers(store: StoreRecord): Promise<number> {
-  const customers = await fetchAllPages<ShopifyCustomer>(
+  const customers = await shopifyFetch<ShopifyCustomer>(
     store.shopify_domain,
     store.shopify_access_token,
     "customers.json",
@@ -105,7 +108,8 @@ export async function syncCustomers(store: StoreRecord): Promise<number> {
     if (!customer.email) continue;
 
     const addr = customer.default_address;
-    const consentEmail = customer.email_marketing_consent?.state === "subscribed";
+    const consentEmail =
+      customer.email_marketing_consent?.state === "subscribed";
 
     const { data: existing } = await supabase
       .from("contacts")
@@ -142,7 +146,7 @@ export async function syncCustomers(store: StoreRecord): Promise<number> {
 }
 
 export async function syncProducts(store: StoreRecord): Promise<number> {
-  const products = await fetchAllPages<ShopifyProduct>(
+  const products = await shopifyFetch<ShopifyProduct>(
     store.shopify_domain,
     store.shopify_access_token,
     "products.json",
@@ -166,7 +170,9 @@ export async function syncProducts(store: StoreRecord): Promise<number> {
       title: product.title,
       handle: product.handle,
       image_url: product.images?.[0]?.src || null,
-      price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : null,
+      price: product.variants?.[0]?.price
+        ? parseFloat(product.variants[0].price)
+        : null,
       compare_at_price: product.variants?.[0]?.compare_at_price
         ? parseFloat(product.variants[0].compare_at_price)
         : null,
@@ -188,7 +194,7 @@ export async function syncProducts(store: StoreRecord): Promise<number> {
 }
 
 export async function syncOrders(store: StoreRecord): Promise<number> {
-  const orders = await fetchAllPages<ShopifyOrder>(
+  const orders = await shopifyFetch<ShopifyOrder>(
     store.shopify_domain,
     store.shopify_access_token,
     "orders.json?status=any",
@@ -201,16 +207,17 @@ export async function syncOrders(store: StoreRecord): Promise<number> {
   for (const order of orders) {
     if (!order.email) continue;
 
+    // Find or skip contact
     const { data: contact } = await supabase
       .from("contacts")
-      .select("id")
+      .select("id, total_orders, total_spent")
       .eq("store_id", store.id)
       .eq("email", order.email)
       .single();
 
     if (!contact) continue;
 
-    // Check if event already exists
+    // Check if event already exists for this order
     const { data: existingEvent } = await supabase
       .from("events")
       .select("id")
@@ -237,6 +244,22 @@ export async function syncOrders(store: StoreRecord): Promise<number> {
           })),
         },
       });
+
+      // Update contact metrics
+      const totalOrders = ((contact.total_orders as number) || 0) + 1;
+      const totalSpent =
+        ((contact.total_spent as number) || 0) + parseFloat(order.total_price);
+
+      await supabase
+        .from("contacts")
+        .update({
+          total_orders: totalOrders,
+          total_spent: totalSpent,
+          avg_order_value: totalSpent / totalOrders,
+          last_order_at: order.created_at,
+        })
+        .eq("id", contact.id);
+
       synced++;
     }
   }

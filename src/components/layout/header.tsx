@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Bell } from "lucide-react"
 
 const routeLabels: Record<string, string> = {
   "/": "Dashboard",
@@ -11,6 +11,7 @@ const routeLabels: Record<string, string> = {
   "/flows/new": "Nova Automação",
   "/templates": "Templates",
   "/templates/new": "Novo Template",
+  "/audience": "Audiência",
   "/audience/profiles": "Perfis",
   "/audience/segments": "Segmentos",
   "/audience/segments/new": "Novo Segmento",
@@ -18,6 +19,7 @@ const routeLabels: Record<string, string> = {
   "/forms": "Formulários",
   "/forms/new": "Novo Formulário",
   "/analytics": "Analytics",
+  "/settings": "Configurações",
   "/settings/integrations": "Integrações",
   "/settings/email": "Email",
   "/settings/whatsapp": "WhatsApp",
@@ -54,7 +56,8 @@ export function Header() {
   const breadcrumbs = getBreadcrumbs(pathname)
 
   return (
-    <header className="flex h-16 items-center border-b border-gray-200 bg-white px-6">
+    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
+      {/* Breadcrumb lado esquerdo */}
       <nav className="flex items-center gap-1 text-sm">
         {breadcrumbs.map((crumb, index) => (
           <span key={crumb.href} className="flex items-center gap-1">
@@ -73,6 +76,16 @@ export function Header() {
           </span>
         ))}
       </nav>
+
+      {/* Lado direito: notificação + avatar */}
+      <div className="flex items-center gap-3">
+        <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors cursor-pointer">
+          <Bell size={20} />
+        </button>
+        <div className="h-8 w-8 rounded-full bg-brand-500 flex items-center justify-center">
+          <span className="text-white text-xs font-semibold">U</span>
+        </div>
+      </div>
     </header>
   )
 }

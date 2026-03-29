@@ -4,13 +4,18 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  LayoutDashboard,
-  Mail,
+  Home,
+  Send,
   Zap,
+  Layout,
   FileText,
   Users,
-  ClipboardList,
+  Filter,
+  List,
   BarChart3,
+  Plug,
+  Mail,
+  MessageCircle,
   Settings,
   ChevronDown,
   LogOut,
@@ -18,51 +23,51 @@ import {
 import { useStore } from "@/hooks/use-store"
 import { createClient } from "@/lib/supabase/client"
 
+interface NavChild {
+  label: string
+  href: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+}
+
 interface NavItem {
   label: string
   href: string
   icon: React.ComponentType<{ size?: number; className?: string }>
-  children?: { label: string; href: string }[]
+  children?: NavChild[]
 }
 
-const navSections: (NavItem | "separator")[][] = [
-  [
-    { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  ],
-  [
-    { label: "Campanhas", href: "/campaigns", icon: Mail },
-    { label: "Automações", href: "/flows", icon: Zap },
-    { label: "Templates", href: "/templates", icon: FileText },
-  ],
-  [
-    {
-      label: "Audiência",
-      href: "/audience",
-      icon: Users,
-      children: [
-        { label: "Perfis", href: "/audience/profiles" },
-        { label: "Segmentos", href: "/audience/segments" },
-        { label: "Listas", href: "/audience/lists" },
-      ],
-    },
-    { label: "Formulários", href: "/forms", icon: ClipboardList },
-  ],
-  [
-    { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  ],
-  [
-    {
-      label: "Configurações",
-      href: "/settings",
-      icon: Settings,
-      children: [
-        { label: "Integrações", href: "/settings/integrations" },
-        { label: "Email", href: "/settings/email" },
-        { label: "WhatsApp", href: "/settings/whatsapp" },
-        { label: "SMS", href: "/settings/sms" },
-      ],
-    },
-  ],
+type NavEntry = NavItem | "separator"
+
+const navItems: NavEntry[] = [
+  { label: "Dashboard", href: "/", icon: Home },
+  { label: "Campanhas", href: "/campaigns", icon: Send },
+  { label: "Automações", href: "/flows", icon: Zap },
+  { label: "Templates", href: "/templates", icon: Layout },
+  { label: "Formulários", href: "/forms", icon: FileText },
+  "separator",
+  {
+    label: "Audiência",
+    href: "/audience",
+    icon: Users,
+    children: [
+      { label: "Perfis", href: "/audience/profiles", icon: Users },
+      { label: "Segmentos", href: "/audience/segments", icon: Filter },
+      { label: "Listas", href: "/audience/lists", icon: List },
+    ],
+  },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  "separator",
+  {
+    label: "Configurações",
+    href: "/settings",
+    icon: Settings,
+    children: [
+      { label: "Integrações", href: "/settings/integrations", icon: Plug },
+      { label: "Email", href: "/settings/email", icon: Mail },
+      { label: "WhatsApp", href: "/settings/whatsapp", icon: MessageCircle },
+      { label: "Conta", href: "/settings/account", icon: Settings },
+    ],
+  },
 ]
 
 function isActive(pathname: string, href: string): boolean {
@@ -85,7 +90,6 @@ export function Sidebar() {
   const { store } = useStore()
 
   const storeName = store?.name || "Minha Loja"
-  const storeEmail = ""
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -94,37 +98,34 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="bg-sidebar h-screen fixed w-60 flex flex-col z-50">
+    <aside className="bg-sidebar h-screen fixed w-[220px] flex flex-col z-50">
       {/* Logo */}
       <div className="px-5 py-5">
         <Link href="/" className="flex items-center gap-0">
           <span className="text-white font-bold text-xl">Convertfy</span>
-          <span className="text-brand-400 font-bold text-xl">Mail</span>
+          <span className="text-brand-500 font-bold text-xl">Mail</span>
         </Link>
       </div>
 
-      {/* Navigation */}
+      {/* Navegação */}
       <nav className="flex-1 overflow-y-auto px-3 py-1">
-        {navSections.map((section, sectionIndex) => (
-          <div key={sectionIndex}>
-            {sectionIndex > 0 && (
-              <div className="h-px bg-gray-700/50 mx-1 my-2" />
-            )}
-            {section.map((item) => {
-              if (typeof item === "string") return null
-              return (
-                <NavItemComponent
-                  key={item.href}
-                  item={item}
-                  pathname={pathname}
-                />
-              )
-            })}
-          </div>
-        ))}
+        {navItems.map((entry, index) => {
+          if (entry === "separator") {
+            return (
+              <div key={`sep-${index}`} className="h-px bg-gray-700/50 mx-1 my-3" />
+            )
+          }
+          return (
+            <NavItemComponent
+              key={entry.href}
+              item={entry}
+              pathname={pathname}
+            />
+          )
+        })}
       </nav>
 
-      {/* Footer - User info */}
+      {/* Rodapé - Informações do usuário */}
       <div className="border-t border-gray-700/50 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
@@ -136,13 +137,10 @@ export function Sidebar() {
             <p className="text-sm text-white font-medium truncate">
               {storeName}
             </p>
-            {storeEmail && (
-              <p className="text-xs text-gray-400 truncate">{storeEmail}</p>
-            )}
           </div>
           <button
             onClick={handleLogout}
-            className="text-gray-400 hover:text-gray-200 flex-shrink-0"
+            className="text-gray-400 hover:text-gray-200 flex-shrink-0 cursor-pointer"
             title="Sair"
           >
             <LogOut size={18} />
@@ -171,12 +169,12 @@ function NavItemComponent({
 
   if (hasChildren) {
     return (
-      <div>
+      <div className="mb-0.5">
         <button
           onClick={() => setExpanded(!expanded)}
-          className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+          className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
             active
-              ? "bg-sidebar-active text-white border-l-[3px] border-brand-500"
+              ? "bg-[rgba(242,107,42,0.08)] text-white border-l-[3px] border-brand-500"
               : "text-gray-400 hover:text-gray-200 hover:bg-sidebar-hover"
           }`}
         >
@@ -193,17 +191,19 @@ function NavItemComponent({
           <div className="ml-4 mt-1 space-y-0.5">
             {item.children!.map((child) => {
               const childIsActive = isActive(pathname, child.href)
+              const ChildIcon = child.icon
               return (
                 <Link
                   key={child.href}
                   href={child.href}
-                  className={`block px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     childIsActive
-                      ? "bg-sidebar-active text-white border-l-[3px] border-brand-500"
+                      ? "bg-[rgba(242,107,42,0.08)] text-white border-l-[3px] border-brand-500"
                       : "text-gray-400 hover:text-gray-200 hover:bg-sidebar-hover"
                   }`}
                 >
-                  {child.label}
+                  <ChildIcon size={16} />
+                  <span>{child.label}</span>
                 </Link>
               )
             })}
@@ -216,9 +216,9 @@ function NavItemComponent({
   return (
     <Link
       href={item.href}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-0.5 ${
         active
-          ? "bg-sidebar-active text-white border-l-[3px] border-brand-500"
+          ? "bg-[rgba(242,107,42,0.08)] text-white border-l-[3px] border-brand-500"
           : "text-gray-400 hover:text-gray-200 hover:bg-sidebar-hover"
       }`}
     >

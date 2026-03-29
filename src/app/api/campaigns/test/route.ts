@@ -18,47 +18,51 @@ export async function POST(request: NextRequest) {
     let emailSubject = subject || "Email de teste"
     let storeName = "Worder"
     let senderEmail = "noreply@mail.convertfy.com.br"
+    let senderName = "Worder"
+    let replyTo: string | undefined
 
-    // If templateId provided, fetch template and store
-    if (templateId || campaignId) {
-      let template: Record<string, unknown> | null = null
-      let store: Record<string, unknown> | null = null
+    // If templateId/campaignId provided, fetch from DB
+    if (campaignId) {
+      const { data: campaign } = await supabase
+        .from("campaigns")
+        .select("*, templates(*), stores(*)")
+        .eq("id", campaignId)
+        .single()
 
-      if (campaignId) {
-        const { data: campaign } = await supabase
-          .from("campaigns")
-          .select("*, templates(*), stores(*)")
-          .eq("id", campaignId)
-          .single()
-
-        if (campaign) {
-          template = campaign.templates as Record<string, unknown>
-          store = campaign.stores as Record<string, unknown>
-          emailSubject = (campaign.subject as string) || emailSubject
-        }
-      } else if (templateId) {
-        const { data: tmpl } = await supabase
-          .from("templates")
-          .select("*, stores(*)")
-          .eq("id", templateId)
-          .single()
-
-        if (tmpl) {
-          template = tmpl
-          store = tmpl.stores as Record<string, unknown>
+      if (campaign) {
+        const tmpl = campaign.templates as Record<string, unknown>
+        const store = campaign.stores as Record<string, unknown>
+        if (tmpl && !html) emailHtml = (tmpl.html as string) || ""
+        if (tmpl && !subject) emailSubject = (tmpl.subject as string) || emailSubject
+        emailSubject = (campaign.subject as string) || emailSubject
+        if (store) {
+          storeName = (store.name as string) || storeName
+          senderName = (store.sender_name as string) || storeName
+          const domain = store.shopify_domain as string
+          if (domain) senderEmail = `noreply@${domain}`
+          if (store.sender_email) senderEmail = store.sender_email as string
+          if (store.reply_to) replyTo = store.reply_to as string
         }
       }
+    } else if (templateId) {
+      const { data: tmpl } = await supabase
+        .from("templates")
+        .select("*, stores(*)")
+        .eq("id", templateId)
+        .single()
 
-      if (template && !html) {
-        emailHtml = (template.html as string) || ""
-      }
-      if (template && !subject) {
-        emailSubject = (template.subject as string) || emailSubject
-      }
-      if (store) {
-        storeName = (store.name as string) || storeName
-        const domain = (store.shopify_domain as string)
-        if (domain) senderEmail = `noreply@${domain}`
+      if (tmpl) {
+        if (!html) emailHtml = (tmpl.html as string) || ""
+        if (!subject) emailSubject = (tmpl.subject as string) || emailSubject
+        const store = tmpl.stores as Record<string, unknown>
+        if (store) {
+          storeName = (store.name as string) || storeName
+          senderName = (store.sender_name as string) || storeName
+          const domain = store.shopify_domain as string
+          if (domain) senderEmail = `noreply@${domain}`
+          if (store.sender_email) senderEmail = store.sender_email as string
+          if (store.reply_to) replyTo = store.reply_to as string
+        }
       }
     }
 
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
       contact: {
         first_name: "Teste",
         last_name: "Usuário",
-        email: testEmail,
+        email: testEmail as string,
         phone: "",
       },
       store: {
@@ -81,11 +85,12 @@ export async function POST(request: NextRequest) {
 
     // Send via Resend
     const result = await sendEmail({
-      to: testEmail,
+      to: testEmail as string,
       from: senderEmail,
-      senderName: storeName,
+      senderName,
       subject: `[TESTE] ${renderedSubject}`,
       html: renderedHtml,
+      replyTo,
     })
 
     if (result.error) {

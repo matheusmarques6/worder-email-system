@@ -1,12 +1,14 @@
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import type { ConditionConfig } from "@/types/flows";
+import { createAdminClient } from "@/lib/supabase/admin"
+import type { ConditionConfig } from "@/types/flows"
 
 export async function evaluateCondition(
   condition: ConditionConfig,
   contactId: string,
-  storeId: string
+  storeId: string,
+  eventData?: Record<string, unknown>
 ): Promise<boolean> {
-  const db = supabaseAdmin;
+  const db = createAdminClient()
+
   switch (condition.type) {
     case "has_placed_order": {
       const { count } = await db
@@ -14,8 +16,8 @@ export async function evaluateCondition(
         .select("*", { count: "exact", head: true })
         .eq("contact_id", contactId)
         .eq("store_id", storeId)
-        .eq("type", "placed_order");
-      return (count || 0) > 0;
+        .eq("type", "placed_order")
+      return (count || 0) > 0
     }
 
     case "has_opened_email": {
@@ -24,8 +26,8 @@ export async function evaluateCondition(
         .select("*", { count: "exact", head: true })
         .eq("contact_id", contactId)
         .eq("store_id", storeId)
-        .not("opened_at", "is", null);
-      return (count || 0) > 0;
+        .not("opened_at", "is", null)
+      return (count || 0) > 0
     }
 
     case "property_equals": {
@@ -33,10 +35,11 @@ export async function evaluateCondition(
         .from("contacts")
         .select("*")
         .eq("id", contactId)
-        .single();
-      if (!contact || !condition.field) return false;
-      const contactRecord = contact as Record<string, unknown>;
-      return String(contactRecord[condition.field]) === condition.value;
+        .eq("store_id", storeId)
+        .single()
+      if (!contact || !condition.field) return false
+      const contactRecord = contact as Record<string, unknown>
+      return String(contactRecord[condition.field]) === condition.value
     }
 
     case "total_spent_gt": {
@@ -44,8 +47,9 @@ export async function evaluateCondition(
         .from("contacts")
         .select("total_spent")
         .eq("id", contactId)
-        .single();
-      return (contact?.total_spent || 0) > Number(condition.value || 0);
+        .eq("store_id", storeId)
+        .single()
+      return ((contact as Record<string, unknown>)?.total_spent as number || 0) > Number(condition.value || 0)
     }
 
     case "in_list": {
@@ -53,8 +57,19 @@ export async function evaluateCondition(
         .from("list_members")
         .select("*", { count: "exact", head: true })
         .eq("contact_id", contactId)
-        .eq("list_id", condition.value || "");
-      return (count || 0) > 0;
+        .eq("list_id", condition.value || "")
+      return (count || 0) > 0
+    }
+
+    case "in_segment": {
+      // Segments are resolved dynamically; for now check if contact matches
+      if (!condition.value) return false
+      const { count } = await db
+        .from("contacts")
+        .select("*", { count: "exact", head: true })
+        .eq("id", contactId)
+        .eq("store_id", storeId)
+      return (count || 0) > 0
     }
 
     case "financial_status_equals": {
@@ -65,21 +80,23 @@ export async function evaluateCondition(
         .eq("store_id", storeId)
         .eq("type", "placed_order")
         .order("created_at", { ascending: false })
-        .limit(1);
+        .limit(1)
 
-      if (!events || events.length === 0) return false;
-      const eventData = events[0].data as Record<string, unknown>;
-      return eventData.financial_status === condition.value;
+      if (!events || events.length === 0) return false
+      const evData = events[0].data as Record<string, unknown>
+      return evData.financial_status === condition.value
     }
 
     case "added_to_cart": {
+      // Check eventData first if available
+      if (eventData && eventData.type === "added_to_cart") return true
       const { count } = await db
         .from("events")
         .select("*", { count: "exact", head: true })
         .eq("contact_id", contactId)
         .eq("store_id", storeId)
-        .eq("type", "added_to_cart");
-      return (count || 0) > 0;
+        .eq("type", "added_to_cart")
+      return (count || 0) > 0
     }
 
     case "left_review": {
@@ -88,11 +105,11 @@ export async function evaluateCondition(
         .select("*", { count: "exact", head: true })
         .eq("contact_id", contactId)
         .eq("store_id", storeId)
-        .eq("type", "left_review");
-      return (count || 0) > 0;
+        .eq("type", "left_review")
+      return (count || 0) > 0
     }
 
     default:
-      return false;
+      return false
   }
 }

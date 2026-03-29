@@ -1,32 +1,54 @@
-import { NextRequest } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { NextRequest } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const supabase = createAdminClient();
+  const { id } = await params
+  const supabase = createAdminClient()
 
   try {
+    // Fetch email_send
     const { data: emailSend } = await supabase
       .from("email_sends")
-      .select("contact_id, store_id")
+      .select("contact_id, store_id, campaign_id")
       .eq("id", id)
-      .single();
+      .single()
 
     if (emailSend) {
+      // Update contact subscribed = false
       await supabase
         .from("contacts")
-        .update({ consent_email: "unsubscribed" })
-        .eq("id", emailSend.contact_id);
+        .update({ subscribed: false })
+        .eq("id", emailSend.contact_id)
+        .eq("store_id", emailSend.store_id)
 
+      // Insert event
       await supabase.from("events").insert({
         store_id: emailSend.store_id,
         contact_id: emailSend.contact_id,
         type: "unsubscribed",
         data: { email_send_id: id },
-      });
+      })
+
+      // Update campaign total_unsubscribed if campaign_id exists
+      if (emailSend.campaign_id) {
+        const { data: campaign } = await supabase
+          .from("campaigns")
+          .select("total_unsubscribed")
+          .eq("id", emailSend.campaign_id)
+          .single()
+
+        if (campaign) {
+          await supabase
+            .from("campaigns")
+            .update({
+              total_unsubscribed: ((campaign as Record<string, unknown>).total_unsubscribed as number || 0) + 1,
+            })
+            .eq("id", emailSend.campaign_id)
+        }
+      }
     }
   } catch {
     // Silently fail
@@ -48,12 +70,12 @@ export async function GET(
 <body>
   <div class="container">
     <h1>Você foi descadastrado com sucesso</h1>
-    <p>Você não receberá mais emails de marketing.</p>
+    <p>Não receberá mais emails.</p>
   </div>
 </body>
-</html>`;
+</html>`
 
   return new Response(html, {
     headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
+  })
 }

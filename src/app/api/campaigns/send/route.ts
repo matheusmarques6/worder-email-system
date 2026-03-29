@@ -3,6 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { sendCampaignEmail } from "@/lib/email/send-campaign-email"
 import type { Contact, Store, Template } from "@/types"
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { campaignId } = await request.json()
@@ -12,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
-    // 1. Fetch campaign with template and store
+    // 1. Fetch campaign with template and store via joins
     const { data: campaign, error: campaignError } = await supabase
       .from("campaigns")
       .select("*, templates(*), stores(*)")
@@ -30,8 +34,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Campaign has no template or HTML" }, { status: 400 })
     }
 
-    // 2. Resolve contacts based on list_id or segment_id
-    let contacts: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; subscribed: boolean }[] = []
+    // 2. Resolve contacts from list_id, segment_id, or all store contacts
+    let contacts: Array<{
+      id: string
+      email: string
+      first_name: string | null
+      last_name: string | null
+      phone: string | null
+      subscribed: boolean
+    }> = []
 
     if (campaign.list_id) {
       const { data } = await supabase
@@ -46,7 +57,6 @@ export async function POST(request: NextRequest) {
       const { resolveSegmentContacts } = await import("@/lib/segments/resolver")
       contacts = await resolveSegmentContacts(campaign.segment_id, campaign.store_id)
     } else {
-      // No list or segment, send to all subscribed contacts in the store
       const { data } = await supabase
         .from("contacts")
         .select("id, email, first_name, last_name, phone, subscribed")
@@ -57,9 +67,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Filter subscribed only
-    contacts = contacts.filter(c => c.subscribed !== false)
+    contacts = contacts.filter((c) => c.subscribed !== false)
 
-    // 4. Exclude unengaged if option set
+    // 4. Exclude unengaged if option set (no opens in 90 days)
     if (campaign.exclude_unengaged && contacts.length > 0) {
       const ninetyDaysAgo = new Date()
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
@@ -67,13 +77,14 @@ export async function POST(request: NextRequest) {
       const { data: engagedSends } = await supabase
         .from("email_sends")
         .select("contact_id")
-        .in("contact_id", contacts.map(c => c.id))
+        .in("contact_id", contacts.map((c) => c.id))
+        .eq("store_id", campaign.store_id as string)
         .not("opened_at", "is", null)
         .gte("opened_at", ninetyDaysAgo.toISOString())
 
       if (engagedSends) {
-        const engagedIds = new Set(engagedSends.map(s => s.contact_id))
-        contacts = contacts.filter(c => engagedIds.has(c.id))
+        const engagedIds = new Set(engagedSends.map((s: { contact_id: string }) => s.contact_id))
+        contacts = contacts.filter((c) => engagedIds.has(c.id))
       }
     }
 
@@ -85,12 +96,13 @@ export async function POST(request: NextRequest) {
       const { data: recentSends } = await supabase
         .from("email_sends")
         .select("contact_id")
-        .in("contact_id", contacts.map(c => c.id))
+        .in("contact_id", contacts.map((c) => c.id))
+        .eq("store_id", campaign.store_id as string)
         .gte("created_at", sixteenHoursAgo.toISOString())
 
       if (recentSends) {
-        const recentIds = new Set(recentSends.map(s => s.contact_id))
-        contacts = contacts.filter(c => !recentIds.has(c.id))
+        const recentIds = new Set(recentSends.map((s: { contact_id: string }) => s.contact_id))
+        contacts = contacts.filter((c) => !recentIds.has(c.id))
       }
     }
 
@@ -104,12 +116,12 @@ export async function POST(request: NextRequest) {
       .update({ status: "sending" })
       .eq("id", campaignId)
 
-    // 7. Send emails - handle A/B testing
+    // 7. Send emails - handle A/B testing with batch sending
     let sentCount = 0
     let failedCount = 0
 
     const sendToContact = async (contact: typeof contacts[0], subjectOverride?: string) => {
-      const templateWithSubject = {
+      const templateWithSubject: Template = {
         ...template,
         subject: subjectOverride || template.subject,
       }
@@ -118,7 +130,7 @@ export async function POST(request: NextRequest) {
         contact as unknown as Contact,
         templateWithSubject,
         store,
-        campaignId,
+        campaignId
       )
 
       if (result.success) {
@@ -128,21 +140,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Determine which contacts get which subject (A/B testing)
+    let contactsToSend: Array<{ contact: typeof contacts[0]; subject?: string }> = []
+
     if (campaign.ab_test_enabled && campaign.subject_b) {
-      const splitPct = campaign.ab_split ?? 50
+      const splitPct = (campaign.ab_split as number) ?? 50
       const splitIndex = Math.floor(contacts.length * (splitPct / 100))
       const groupA = contacts.slice(0, splitIndex)
       const groupB = contacts.slice(splitIndex)
 
-      for (const contact of groupA) {
-        await sendToContact(contact, campaign.subject)
-      }
-      for (const contact of groupB) {
-        await sendToContact(contact, campaign.subject_b)
-      }
+      contactsToSend = [
+        ...groupA.map((c) => ({ contact: c, subject: campaign.subject as string })),
+        ...groupB.map((c) => ({ contact: c, subject: campaign.subject_b as string })),
+      ]
     } else {
-      for (const contact of contacts) {
-        await sendToContact(contact, campaign.subject)
+      contactsToSend = contacts.map((c) => ({ contact: c, subject: campaign.subject as string }))
+    }
+
+    // BATCH SENDING: send in batches of 10 with 500ms delay between batches
+    const BATCH_SIZE = 10
+    for (let i = 0; i < contactsToSend.length; i += BATCH_SIZE) {
+      const batch = contactsToSend.slice(i, i + BATCH_SIZE)
+
+      await Promise.all(
+        batch.map((item) => sendToContact(item.contact, item.subject))
+      )
+
+      // Delay between batches to respect Resend rate limits
+      if (i + BATCH_SIZE < contactsToSend.length) {
+        await sleep(500)
       }
     }
 
@@ -157,7 +183,11 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", campaignId)
 
-    return NextResponse.json({ success: true, sent_count: sentCount, failed_count: failedCount })
+    return NextResponse.json({
+      success: true,
+      sent_count: sentCount,
+      failed_count: failedCount,
+    })
   } catch (err) {
     console.error("Campaign send error:", err)
     return NextResponse.json({ error: "Failed to send campaign" }, { status: 500 })

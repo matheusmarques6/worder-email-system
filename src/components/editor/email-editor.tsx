@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useCallback, useImperativeHandle, forwardRef } from "react";
+import { useRef, useCallback, useImperativeHandle, useEffect, useState, forwardRef } from "react";
 import EmailEditor, {
   type EditorRef,
   type EmailEditorProps,
   type Editor,
 } from "react-email-editor";
+import { toast } from "sonner";
 import { mergeTags } from "./merge-tags";
 
 interface EmailEditorWrapperProps {
@@ -24,6 +25,25 @@ export const EmailEditorWrapper = forwardRef<
   EmailEditorWrapperProps
 >(function EmailEditorWrapper({ designJson, onSave, height = "100vh" }, ref) {
   const emailEditorRef = useRef<EditorRef | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (!editorReady) return;
+
+    const interval = setInterval(() => {
+      emailEditorRef.current?.editor?.exportHtml(
+        (data: { design: Record<string, unknown>; html: string }) => {
+          onSaveRef.current?.(data.html, data.design);
+          toast.success("Salvo automaticamente");
+        }
+      );
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [editorReady]);
 
   const onReady = useCallback(
     (unlayer: Editor) => {
@@ -34,6 +54,7 @@ export const EmailEditorWrapper = forwardRef<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         unlayer.loadDesign(designJson as any);
       }
+      setEditorReady(true);
     },
     [designJson]
   );

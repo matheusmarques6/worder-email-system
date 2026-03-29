@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Análises</h1>
           <p className="text-sm text-gray-500 mt-1">
             Desempenho dos seus envios nos últimos {periodLabels[period]}
           </p>
@@ -258,7 +258,7 @@ export default function AnalyticsPage() {
                     dataKey="revenue"
                     fill="#F97316"
                     radius={[4, 4, 0, 0]}
-                    name="Revenue"
+                    name="Receita"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -301,13 +301,13 @@ export default function AnalyticsPage() {
                       Enviados
                     </th>
                     <th className="text-right py-2 px-4 font-medium text-gray-500">
-                      Open Rate
+                      Taxa de Abertura
                     </th>
                     <th className="text-right py-2 px-4 font-medium text-gray-500">
-                      Click Rate
+                      Taxa de Clique
                     </th>
                     <th className="text-right py-2 pl-4 font-medium text-gray-500">
-                      Revenue
+                      Receita
                     </th>
                   </tr>
                 </thead>
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
                       Nome
                     </th>
                     <th className="text-left py-2 px-4 font-medium text-gray-500">
-                      Trigger
+                      Gatilho
                     </th>
                     <th className="text-right py-2 px-4 font-medium text-gray-500">
                       Entradas
@@ -378,7 +378,7 @@ export default function AnalyticsPage() {
                       Emails
                     </th>
                     <th className="text-right py-2 pl-4 font-medium text-gray-500">
-                      Revenue
+                      Receita
                     </th>
                   </tr>
                 </thead>

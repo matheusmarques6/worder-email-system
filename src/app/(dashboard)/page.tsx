@@ -250,9 +250,9 @@ export default function DashboardPage() {
                 <tr className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <th className="px-6 py-3 text-left">Nome</th>
                   <th className="px-6 py-3 text-left">Enviados</th>
-                  <th className="px-6 py-3 text-left">Open Rate</th>
-                  <th className="px-6 py-3 text-left">Click Rate</th>
-                  <th className="px-6 py-3 text-left">Revenue</th>
+                  <th className="px-6 py-3 text-left">Taxa de Abertura</th>
+                  <th className="px-6 py-3 text-left">Taxa de Clique</th>
+                  <th className="px-6 py-3 text-left">Receita</th>
                 </tr>
               </thead>
               <tbody>

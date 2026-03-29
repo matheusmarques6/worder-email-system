@@ -12,24 +12,30 @@ export function useStore() {
     const supabase = createClient()
 
     async function fetchStore() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setLoading(false)
+          return
+        }
+
+        const { data } = await supabase
+          .from("stores")
+          .select("*")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle()
+
+        setStore(data as Store | null)
+      } catch {
+        setStore(null)
+      } finally {
         setLoading(false)
-        return
       }
-
-      const { data } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      setStore(data as Store | null)
-      setLoading(false)
     }
 
     fetchStore()
   }, [])
 
-  return { store, loading }
+  return { store, loading, storeLoading: loading }
 }

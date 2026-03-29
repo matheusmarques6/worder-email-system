@@ -33,10 +33,24 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      await supabase.from("stores").insert({
+      // Create store for user
+      const { data: store } = await supabase.from("stores").insert({
         user_id: data.user.id,
-        name: name,
-      })
+        name: name || "Minha Loja",
+      }).select("id").single()
+
+      // Seed prebuilt templates for the new store
+      if (store?.id) {
+        try {
+          await fetch("/api/templates/seed", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storeId: store.id }),
+          })
+        } catch {
+          // Non-critical, ignore
+        }
+      }
     }
 
     toast.success("Conta criada com sucesso!")
@@ -57,13 +71,13 @@ export default function RegisterPage() {
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Nome completo
+            Nome da loja
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Seu nome"
+            placeholder="Nome da sua loja"
             required
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />

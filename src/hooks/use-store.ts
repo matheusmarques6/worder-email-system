@@ -19,6 +19,7 @@ export function useStore() {
           return
         }
 
+        // Try to find existing store
         const { data } = await supabase
           .from("stores")
           .select("*")
@@ -26,8 +27,39 @@ export function useStore() {
           .limit(1)
           .maybeSingle()
 
-        setStore(data as Store | null)
-      } catch {
+        if (data) {
+          setStore(data as Store)
+          setLoading(false)
+          return
+        }
+
+        // No store found - auto-create one via API (service role bypasses RLS)
+        const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Minha Loja"
+        const res = await fetch("/api/auth/setup-store", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            storeName: fullName,
+            email: user.email,
+          }),
+        })
+
+        if (res.ok) {
+          const result = await res.json()
+          if (result.store?.id) {
+            // Re-fetch the full store object
+            const { data: newStore } = await supabase
+              .from("stores")
+              .select("*")
+              .eq("id", result.store.id)
+              .single()
+
+            setStore(newStore as Store | null)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load store:", err)
         setStore(null)
       } finally {
         setLoading(false)

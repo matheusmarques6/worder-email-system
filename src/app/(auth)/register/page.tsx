@@ -17,45 +17,50 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
 
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-      },
-    })
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+        },
+      })
 
-    if (error) {
-      toast.error(error.message)
-      setLoading(false)
-      return
-    }
+      if (error) {
+        toast.error(error.message)
+        setLoading(false)
+        return
+      }
 
-    if (data.user) {
-      // Create store for user
-      const { data: store } = await supabase.from("stores").insert({
-        user_id: data.user.id,
-        name: name || "Minha Loja",
-      }).select("id").single()
+      if (data.user) {
+        // Create store via API route (uses service role to bypass RLS)
+        const res = await fetch("/api/auth/setup-store", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: data.user.id,
+            storeName: name || "Minha Loja",
+            email,
+          }),
+        })
 
-      // Seed prebuilt templates for the new store
-      if (store?.id) {
-        try {
-          await fetch("/api/templates/seed", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ storeId: store.id }),
-          })
-        } catch {
-          // Non-critical, ignore
+        const result = await res.json()
+        if (!res.ok) {
+          console.error("Store creation failed:", result.error)
+          toast.error("Conta criada, mas houve um erro ao configurar a loja. Tente fazer login.")
         }
       }
-    }
 
-    toast.success("Conta criada com sucesso!")
-    router.push("/")
-    router.refresh()
+      toast.success("Conta criada com sucesso!")
+      router.push("/")
+      router.refresh()
+    } catch (err) {
+      console.error("Register error:", err)
+      toast.error("Erro ao criar conta. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

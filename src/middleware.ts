@@ -43,7 +43,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/t") ||
     pathname.startsWith("/api/track") ||
     pathname.startsWith("/api/unsubscribe") ||
-    pathname.startsWith("/api/forms/submit")
+    pathname.startsWith("/api/forms/submit") ||
+    pathname.startsWith("/api/auth/setup-store")
 
   if (!user && !isPublicRoute && !isApiPublic) {
     const url = request.nextUrl.clone()

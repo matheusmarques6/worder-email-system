@@ -103,6 +103,7 @@ export default function NewTemplatePage() {
     }
 
     toast.success("Template criado!")
+    // Redirect to our custom email builder (not Unlayer)
     router.push(`/templates/${data.id}/edit`)
   }
 

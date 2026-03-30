@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   LayoutGrid,
   Ticket,
+  Timer,
   PanelTop,
   PanelBottom,
   Share2,
@@ -51,6 +52,7 @@ const blockGroups: { title: string; blocks: BlockConfig[] }[] = [
       { type: 'product', label: 'Produto', icon: ShoppingBag },
       { type: 'product-grid', label: 'Grid de Produtos', icon: LayoutGrid },
       { type: 'coupon', label: 'Cupom', icon: Ticket },
+      { type: 'countdown', label: 'Contagem Regressiva', icon: Timer },
     ],
   },
   {

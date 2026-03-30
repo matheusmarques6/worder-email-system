@@ -158,6 +158,17 @@ export interface HtmlBlockData {
   html: string;
 }
 
+export interface CountdownBlockData {
+  endDate: string; // ISO date
+  style: 'light' | 'dark' | 'minimal';
+  labels: { days: string; hours: string; minutes: string; seconds: string };
+  expiredText: string;
+  backgroundColor: string;
+  numberColor: string;
+  labelColor: string;
+  padding: { top: number; bottom: number; left: number; right: number };
+}
+
 // Editor state
 export interface EditorState {
   template: EmailTemplate;

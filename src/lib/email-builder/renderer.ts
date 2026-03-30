@@ -143,10 +143,15 @@ function renderHeadingBlock(data: Record<string, unknown>): string {
   </table>`;
 }
 
-function renderColumnsBlock(data: Record<string, unknown>): string {
+function renderColumnsBlock(data: Record<string, unknown>, template?: EmailTemplate): string {
   const layout = (data.layout as string) ?? '50-50';
   const gap = (data.gap as number) ?? 10;
   const mobileStack = (data.mobileStack as boolean) ?? true;
+  const columns = (data.columns ?? []) as Array<{
+    width: string;
+    childrenIds: string[];
+    padding: { top: number; bottom: number; left: number; right: number };
+  }>;
 
   const layoutWidths: Record<string, number[]> = {
     '50-50': [50, 50],
@@ -161,12 +166,27 @@ function renderColumnsBlock(data: Record<string, unknown>): string {
   // Ghost table pattern for Outlook
   const cols = widths.map((pct, i) => {
     const w = Math.floor((totalWidth * pct) / 100) - gap;
+    const column = columns[i];
+    const childrenIds = column?.childrenIds ?? [];
+
+    // Render child blocks inside the column
+    let childrenHtml = '&nbsp;';
+    if (template && childrenIds.length > 0) {
+      childrenHtml = childrenIds
+        .map((childId) => {
+          const childBlock = template.blocks[childId];
+          if (!childBlock) return '';
+          return renderBlock(childBlock, template);
+        })
+        .join('\n');
+    }
+
     return `<!--[if mso]><td width="${w}" valign="top"><![endif]-->
-      <div style="display: inline-block; width: 100%; max-width: ${pct}%; vertical-align: top;${mobileStack ? '' : ''}"${mobileStack ? ` class="mobile-stack"` : ''}>
+      <div style="display: inline-block; width: 100%; max-width: ${pct}%; vertical-align: top;"${mobileStack ? ` class="mobile-stack"` : ''}>
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding: ${gap / 2}px;">
-              &nbsp;
+              ${childrenHtml}
             </td>
           </tr>
         </table>
@@ -308,8 +328,70 @@ function renderSocialLinksBlock(data: Record<string, unknown>): string {
   </table>`;
 }
 
-function renderBlock(block: BlockBase): string {
-  const renderers: Record<string, (data: Record<string, unknown>) => string> = {
+function renderCountdownBlock(data: Record<string, unknown>): string {
+  const endDate = (data.endDate as string) ?? '';
+  const style = (data.style as string) ?? 'dark';
+  const labels = (data.labels ?? { days: 'dias', hours: 'horas', minutes: 'minutos', seconds: 'segundos' }) as Record<string, string>;
+  const expiredText = escapeHtml((data.expiredText as string) ?? 'Oferta expirada!');
+  const backgroundColor = (data.backgroundColor as string) ?? (style === 'light' ? '#FFFFFF' : style === 'dark' ? '#1a1a2e' : 'transparent');
+  const numberColor = (data.numberColor as string) ?? (style === 'light' ? '#333333' : '#FFFFFF');
+  const labelColor = (data.labelColor as string) ?? (style === 'light' ? '#666666' : '#cccccc');
+
+  if (!endDate) return '';
+
+  const diff = new Date(endDate).getTime() - Date.now();
+  if (diff <= 0) {
+    return `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="background-color: ${backgroundColor}; padding: 20px; text-align: center;">
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${numberColor}; font-family: Arial, sans-serif;">${expiredText}</p>
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  const boxBg = style === 'minimal' ? 'transparent' : (style === 'light' ? '#f3f4f6' : '#16213e');
+  const boxBorder = style === 'minimal' ? '' : `border-radius: 8px;`;
+
+  const units = [
+    { value: String(days).padStart(2, '0'), label: labels.days ?? 'dias' },
+    { value: String(hours).padStart(2, '0'), label: labels.hours ?? 'horas' },
+    { value: String(minutes).padStart(2, '0'), label: labels.minutes ?? 'minutos' },
+    { value: String(seconds).padStart(2, '0'), label: labels.seconds ?? 'segundos' },
+  ];
+
+  const cells = units.map((u) => `
+    <td style="padding: 0 6px;">
+      <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+        <tr>
+          <td style="background-color: ${boxBg}; ${boxBorder} padding: 10px 12px; text-align: center; min-width: 60px;">
+            <p style="margin: 0; font-size: 28px; font-weight: bold; color: ${numberColor}; font-family: Arial, sans-serif; line-height: 1;">${u.value}</p>
+            <p style="margin: 4px 0 0; font-size: 11px; color: ${labelColor}; font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(u.label)}</p>
+          </td>
+        </tr>
+      </table>
+    </td>`).join('\n');
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="background-color: ${backgroundColor}; padding: 20px; text-align: center;">
+        <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+          <tr>
+            ${cells}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function renderBlock(block: BlockBase, template?: EmailTemplate): string {
+  const renderers: Record<string, (data: Record<string, unknown>, tpl?: EmailTemplate) => string> = {
     text: renderTextBlock,
     image: renderImageBlock,
     button: renderButtonBlock,
@@ -325,11 +407,12 @@ function renderBlock(block: BlockBase): string {
     'product-grid': renderProductBlock,
     'abandoned-cart': renderProductBlock,
     coupon: renderCouponBlock,
+    countdown: renderCountdownBlock,
   };
 
   const renderer = renderers[block.type];
   if (!renderer) return '';
-  return renderer(block.data);
+  return renderer(block.data, template);
 }
 
 export function renderEmailToHtml(template: EmailTemplate): string {
@@ -340,7 +423,7 @@ export function renderEmailToHtml(template: EmailTemplate): string {
     .map((id) => {
       const block = blocks[id];
       if (!block) return '';
-      return renderBlock(block);
+      return renderBlock(block, template);
     })
     .join('\n');
 

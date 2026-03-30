@@ -64,6 +64,9 @@ function TextConfig({ blockId, data }: { blockId: string; data: Record<string, u
 
   return (
     <div className="space-y-4">
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+        Clique no bloco para editar o texto
+      </div>
       <label className="block text-sm font-medium text-gray-700">
         Cor do texto
         <input
@@ -733,50 +736,264 @@ function SocialLinksConfig({ blockId, data }: { blockId: string; data: Record<st
 
 function ProductConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
   const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const product = data.product as Record<string, unknown> | undefined;
+  const buttonStyle = (data.buttonStyle ?? {}) as Record<string, unknown>;
+
   return (
     <div className="space-y-4">
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      {product ? (
+        <div className="border rounded-lg p-3 bg-gray-50">
+          <p className="text-xs text-gray-500 mb-1">Produto selecionado</p>
+          <p className="text-sm font-medium text-gray-900 truncate">{String(product.title ?? '')}</p>
+          <button
+            type="button"
+            onClick={() => updateBlock(blockId, { product: undefined })}
+            className="mt-2 w-full py-1.5 text-xs border border-[#F26B2A] text-[#F26B2A] rounded hover:bg-orange-50 transition-colors"
+          >
+            Trocar Produto
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400">Clique em &quot;Selecionar Produto&quot; no bloco</p>
+      )}
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">DADOS MANUAIS</p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Titulo
+          <input
+            type="text"
+            value={product ? String(product.title ?? '') : ''}
+            onChange={(e) =>
+              updateBlock(blockId, { product: { ...(product ?? {}), title: e.target.value, shopifyId: (product?.shopifyId as string) ?? '', imageUrl: (product?.imageUrl as string) ?? '', price: (product?.price as string) ?? '', productUrl: (product?.productUrl as string) ?? '' } })
+            }
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          URL da imagem
+          <input
+            type="url"
+            value={product ? String(product.imageUrl ?? '') : ''}
+            onChange={(e) =>
+              updateBlock(blockId, { product: { ...(product ?? {}), imageUrl: e.target.value, shopifyId: (product?.shopifyId as string) ?? '', title: (product?.title as string) ?? '', price: (product?.price as string) ?? '', productUrl: (product?.productUrl as string) ?? '' } })
+            }
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Preco
+          <input
+            type="text"
+            value={product ? String(product.price ?? '') : ''}
+            onChange={(e) =>
+              updateBlock(blockId, { product: { ...(product ?? {}), price: e.target.value, shopifyId: (product?.shopifyId as string) ?? '', title: (product?.title as string) ?? '', imageUrl: (product?.imageUrl as string) ?? '', productUrl: (product?.productUrl as string) ?? '' } })
+            }
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          URL do produto
+          <input
+            type="url"
+            value={product ? String(product.productUrl ?? '') : ''}
+            onChange={(e) =>
+              updateBlock(blockId, { product: { ...(product ?? {}), productUrl: e.target.value, shopifyId: (product?.shopifyId as string) ?? '', title: (product?.title as string) ?? '', imageUrl: (product?.imageUrl as string) ?? '', price: (product?.price as string) ?? '' } })
+            }
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+      </div>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">VISIBILIDADE</p>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={(data.showImage as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showImage: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar imagem
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showTitle as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showTitle: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar titulo
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showPrice as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showPrice: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar preco
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showButton as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showButton: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar botao
+        </label>
+      </div>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">BOTAO</p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Texto do botao
+          <input
+            type="text"
+            value={(data.buttonText as string) ?? 'Comprar agora'}
+            onChange={(e) => updateBlock(blockId, { buttonText: e.target.value })}
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Cor de fundo do botao
+          <input
+            type="color"
+            value={(buttonStyle.backgroundColor as string) ?? '#F26B2A'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, backgroundColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700">
+          Cor do texto do botao
+          <input
+            type="color"
+            value={(buttonStyle.textColor as string) ?? '#FFFFFF'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, textColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function CountdownConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const labels = (data.labels ?? { days: 'dias', hours: 'horas', minutes: 'minutos', seconds: 'segundos' }) as Record<string, string>;
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium text-gray-700">
+        Data e hora de termino
         <input
-          type="checkbox"
-          checked={(data.showImage as boolean) ?? true}
-          onChange={(e) => updateBlock(blockId, { showImage: e.target.checked })}
-          className="rounded"
+          type="datetime-local"
+          value={(data.endDate as string) ?? ''}
+          onChange={(e) => updateBlock(blockId, { endDate: e.target.value })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
         />
-        Mostrar imagem
-      </label>
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input
-          type="checkbox"
-          checked={(data.showTitle as boolean) ?? true}
-          onChange={(e) => updateBlock(blockId, { showTitle: e.target.checked })}
-          className="rounded"
-        />
-        Mostrar titulo
-      </label>
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input
-          type="checkbox"
-          checked={(data.showPrice as boolean) ?? true}
-          onChange={(e) => updateBlock(blockId, { showPrice: e.target.checked })}
-          className="rounded"
-        />
-        Mostrar preco
-      </label>
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input
-          type="checkbox"
-          checked={(data.showButton as boolean) ?? true}
-          onChange={(e) => updateBlock(blockId, { showButton: e.target.checked })}
-          className="rounded"
-        />
-        Mostrar botao
       </label>
       <label className="block text-sm font-medium text-gray-700">
-        Texto do botao
+        Estilo
+        <select
+          value={(data.style as string) ?? 'dark'}
+          onChange={(e) => {
+            const s = e.target.value;
+            const presets: Record<string, { backgroundColor: string; numberColor: string; labelColor: string }> = {
+              light: { backgroundColor: '#FFFFFF', numberColor: '#333333', labelColor: '#666666' },
+              dark: { backgroundColor: '#1a1a2e', numberColor: '#FFFFFF', labelColor: '#cccccc' },
+              minimal: { backgroundColor: 'transparent', numberColor: '#333333', labelColor: '#666666' },
+            };
+            updateBlock(blockId, { style: s, ...presets[s] });
+          }}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        >
+          <option value="light">Claro</option>
+          <option value="dark">Escuro</option>
+          <option value="minimal">Minimalista</option>
+        </select>
+      </label>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">Rotulos</p>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-gray-500">
+            Dias
+            <input
+              type="text"
+              value={labels.days ?? 'dias'}
+              onChange={(e) => updateBlock(blockId, { labels: { ...labels, days: e.target.value } })}
+              className="w-full mt-1 px-2 py-1 border rounded text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Horas
+            <input
+              type="text"
+              value={labels.hours ?? 'horas'}
+              onChange={(e) => updateBlock(blockId, { labels: { ...labels, hours: e.target.value } })}
+              className="w-full mt-1 px-2 py-1 border rounded text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Minutos
+            <input
+              type="text"
+              value={labels.minutes ?? 'minutos'}
+              onChange={(e) => updateBlock(blockId, { labels: { ...labels, minutes: e.target.value } })}
+              className="w-full mt-1 px-2 py-1 border rounded text-sm"
+            />
+          </label>
+          <label className="text-xs text-gray-500">
+            Segundos
+            <input
+              type="text"
+              value={labels.seconds ?? 'segundos'}
+              onChange={(e) => updateBlock(blockId, { labels: { ...labels, seconds: e.target.value } })}
+              className="w-full mt-1 px-2 py-1 border rounded text-sm"
+            />
+          </label>
+        </div>
+      </div>
+
+      <label className="block text-sm font-medium text-gray-700">
+        Cor de fundo
+        <input
+          type="color"
+          value={(data.backgroundColor as string) ?? '#1a1a2e'}
+          onChange={(e) => updateBlock(blockId, { backgroundColor: e.target.value })}
+          className="w-full h-8 mt-1 cursor-pointer"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Cor dos numeros
+        <input
+          type="color"
+          value={(data.numberColor as string) ?? '#FFFFFF'}
+          onChange={(e) => updateBlock(blockId, { numberColor: e.target.value })}
+          className="w-full h-8 mt-1 cursor-pointer"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Cor dos rotulos
+        <input
+          type="color"
+          value={(data.labelColor as string) ?? '#cccccc'}
+          onChange={(e) => updateBlock(blockId, { labelColor: e.target.value })}
+          className="w-full h-8 mt-1 cursor-pointer"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Texto de expirado
         <input
           type="text"
-          value={(data.buttonText as string) ?? 'Comprar agora'}
-          onChange={(e) => updateBlock(blockId, { buttonText: e.target.value })}
+          value={(data.expiredText as string) ?? 'Oferta expirada!'}
+          onChange={(e) => updateBlock(blockId, { expiredText: e.target.value })}
           className="w-full mt-1 px-2 py-1 border rounded text-sm"
         />
       </label>
@@ -901,6 +1118,7 @@ const configComponents: Partial<
   'product-grid': ProductConfig,
   'abandoned-cart': ProductConfig,
   coupon: CouponConfig,
+  countdown: CountdownConfig,
 };
 
 const blockLabels: Partial<Record<BlockType, string>> = {

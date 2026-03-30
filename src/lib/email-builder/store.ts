@@ -16,6 +16,7 @@ import type {
   FooterBlockData,
   SocialLinksBlockData,
   HtmlBlockData,
+  CountdownBlockData,
 } from './types';
 
 type BlockDataMap = {
@@ -34,7 +35,7 @@ type BlockDataMap = {
   'product-grid': ProductBlockData;
   'abandoned-cart': ProductBlockData;
   coupon: CouponBlockData;
-  countdown: Record<string, unknown>;
+  countdown: CountdownBlockData;
 };
 
 export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
@@ -200,7 +201,16 @@ export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
         padding: { top: 16, bottom: 16, left: 24, right: 24 },
       },
     },
-    countdown: {},
+    countdown: {
+      endDate: '',
+      style: 'dark',
+      labels: { days: 'dias', hours: 'horas', minutes: 'minutos', seconds: 'segundos' },
+      expiredText: 'Oferta expirada!',
+      backgroundColor: '#1a1a2e',
+      numberColor: '#FFFFFF',
+      labelColor: '#cccccc',
+      padding: { top: 20, bottom: 20, left: 20, right: 20 },
+    },
   };
 
   return defaults[type];
@@ -234,6 +244,8 @@ interface EditorActions {
   removeBlock: (id: string) => void;
   moveBlock: (id: string, newIndex: number) => void;
   duplicateBlock: (id: string) => void;
+  addBlockToColumn: (columnBlockId: string, columnIndex: number, blockType: BlockType) => string;
+  removeBlockFromColumn: (columnBlockId: string, columnIndex: number, childBlockId: string) => void;
   undo: () => void;
   redo: () => void;
   setPreviewMode: (mode: 'edit' | 'desktop' | 'mobile') => void;
@@ -289,7 +301,7 @@ export const useEmailBuilderStore = create<EditorStore & EditorActions>((set, ge
 
   addBlock: (type, afterBlockId?) => {
     const id = nanoid();
-    const data = getDefaultBlockData(type) as Record<string, unknown>;
+    const data = getDefaultBlockData(type) as unknown as Record<string, unknown>;
     const state = get();
 
     const newBlock: BlockBase = { id, type, data };
@@ -434,6 +446,94 @@ export const useEmailBuilderStore = create<EditorStore & EditorActions>((set, ge
     set({
       template: newTemplate,
       selectedBlockId: newId,
+      isDirty: true,
+      ...historyUpdate,
+    });
+  },
+
+  addBlockToColumn: (columnBlockId, columnIndex, blockType) => {
+    const id = nanoid();
+    const data = getDefaultBlockData(blockType) as unknown as Record<string, unknown>;
+    const state = get();
+    const columnBlock = state.template.blocks[columnBlockId];
+    if (!columnBlock) return id;
+
+    const columns = (columnBlock.data.columns ?? []) as Array<{
+      width: string;
+      childrenIds: string[];
+      padding: { top: number; bottom: number; left: number; right: number };
+    }>;
+    if (columnIndex < 0 || columnIndex >= columns.length) return id;
+
+    const newColumns = columns.map((col, i) => {
+      if (i === columnIndex) {
+        return { ...col, childrenIds: [...col.childrenIds, id] };
+      }
+      return col;
+    });
+
+    const newBlock: BlockBase = { id, type: blockType, data };
+
+    const newTemplate: EmailTemplate = {
+      ...state.template,
+      blocks: {
+        ...state.template.blocks,
+        [id]: newBlock,
+        [columnBlockId]: {
+          ...columnBlock,
+          data: { ...columnBlock.data, columns: newColumns },
+        },
+      },
+    };
+
+    const historyUpdate = pushHistory({ ...state, template: newTemplate });
+
+    set({
+      template: newTemplate,
+      selectedBlockId: id,
+      isDirty: true,
+      ...historyUpdate,
+    });
+
+    return id;
+  },
+
+  removeBlockFromColumn: (columnBlockId, columnIndex, childBlockId) => {
+    const state = get();
+    const columnBlock = state.template.blocks[columnBlockId];
+    if (!columnBlock) return;
+
+    const columns = (columnBlock.data.columns ?? []) as Array<{
+      width: string;
+      childrenIds: string[];
+      padding: { top: number; bottom: number; left: number; right: number };
+    }>;
+    if (columnIndex < 0 || columnIndex >= columns.length) return;
+
+    const newColumns = columns.map((col, i) => {
+      if (i === columnIndex) {
+        return { ...col, childrenIds: col.childrenIds.filter((cid) => cid !== childBlockId) };
+      }
+      return col;
+    });
+
+    const newBlocks = { ...state.template.blocks };
+    delete newBlocks[childBlockId];
+    newBlocks[columnBlockId] = {
+      ...columnBlock,
+      data: { ...columnBlock.data, columns: newColumns },
+    };
+
+    const newTemplate: EmailTemplate = {
+      ...state.template,
+      blocks: newBlocks,
+    };
+
+    const historyUpdate = pushHistory({ ...state, template: newTemplate });
+
+    set({
+      template: newTemplate,
+      selectedBlockId: state.selectedBlockId === childBlockId ? null : state.selectedBlockId,
       isDirty: true,
       ...historyUpdate,
     });

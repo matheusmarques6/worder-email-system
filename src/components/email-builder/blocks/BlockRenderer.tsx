@@ -1,6 +1,7 @@
 'use client';
 
 import type { BlockBase } from '@/lib/email-builder/types';
+import { useEmailBuilderStore } from '@/lib/email-builder/store';
 import { TextBlock } from './TextBlock';
 import { ImageBlock } from './ImageBlock';
 import { ButtonBlock } from './ButtonBlock';
@@ -13,9 +14,9 @@ import { ProductBlock } from './ProductBlock';
 import { CouponBlock } from './CouponBlock';
 import { FooterBlock } from './FooterBlock';
 import { SocialLinksBlock } from './SocialLinksBlock';
+import { CountdownBlock } from './CountdownBlock';
 
-const blockComponents: Record<string, React.ComponentType<{ data: Record<string, unknown> }>> = {
-  text: TextBlock,
+const blockComponents: Record<string, React.ComponentType<{ data: Record<string, unknown>; blockId?: string }>> = {
   image: ImageBlock,
   button: ButtonBlock,
   divider: DividerBlock,
@@ -23,16 +24,32 @@ const blockComponents: Record<string, React.ComponentType<{ data: Record<string,
   heading: HeadingBlock,
   columns: ColumnsBlock,
   html: HtmlBlock,
-  header: TextBlock,
   footer: FooterBlock,
   'social-links': SocialLinksBlock,
   product: ProductBlock,
   'product-grid': ProductBlock,
   'abandoned-cart': ProductBlock,
   coupon: CouponBlock,
+  countdown: CountdownBlock,
 };
 
+// Block types that support isSelected prop
+const textLikeTypes = new Set(['text', 'header']);
+
 export function BlockRenderer({ block }: { block: BlockBase }) {
+  const selectedBlockId = useEmailBuilderStore((s) => s.selectedBlockId);
+  const isSelected = selectedBlockId === block.id;
+
+  if (textLikeTypes.has(block.type)) {
+    return (
+      <TextBlock
+        data={block.data}
+        blockId={block.id}
+        isSelected={isSelected}
+      />
+    );
+  }
+
   const Component = blockComponents[block.type];
   if (!Component) {
     return (
@@ -41,5 +58,5 @@ export function BlockRenderer({ block }: { block: BlockBase }) {
       </div>
     );
   }
-  return <Component data={block.data} />;
+  return <Component data={block.data} blockId={block.id} />;
 }

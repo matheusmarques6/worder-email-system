@@ -1,0 +1,45 @@
+'use client';
+
+import type { BlockBase } from '@/lib/email-builder/types';
+import { TextBlock } from './TextBlock';
+import { ImageBlock } from './ImageBlock';
+import { ButtonBlock } from './ButtonBlock';
+import { DividerBlock } from './DividerBlock';
+import { SpacerBlock } from './SpacerBlock';
+import { HeadingBlock } from './HeadingBlock';
+import { ColumnsBlock } from './ColumnsBlock';
+import { HtmlBlock } from './HtmlBlock';
+import { ProductBlock } from './ProductBlock';
+import { CouponBlock } from './CouponBlock';
+import { FooterBlock } from './FooterBlock';
+import { SocialLinksBlock } from './SocialLinksBlock';
+
+const blockComponents: Record<string, React.ComponentType<{ data: Record<string, unknown> }>> = {
+  text: TextBlock,
+  image: ImageBlock,
+  button: ButtonBlock,
+  divider: DividerBlock,
+  spacer: SpacerBlock,
+  heading: HeadingBlock,
+  columns: ColumnsBlock,
+  html: HtmlBlock,
+  header: TextBlock,
+  footer: FooterBlock,
+  'social-links': SocialLinksBlock,
+  product: ProductBlock,
+  'product-grid': ProductBlock,
+  'abandoned-cart': ProductBlock,
+  coupon: CouponBlock,
+};
+
+export function BlockRenderer({ block }: { block: BlockBase }) {
+  const Component = blockComponents[block.type];
+  if (!Component) {
+    return (
+      <div className="p-4 text-center text-gray-400 text-sm">
+        Bloco &quot;{block.type}&quot; nao suportado
+      </div>
+    );
+  }
+  return <Component data={block.data} />;
+}

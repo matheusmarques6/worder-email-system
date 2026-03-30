@@ -8,10 +8,6 @@ export interface SystemTemplate {
   template: EmailTemplate;
 }
 
-function makeId(prefix: string, n: number): string {
-  return `${prefix}_${n}`;
-}
-
 const boasVindas: EmailTemplate = {
   root: {
     type: 'EmailLayout',
@@ -938,5 +934,3 @@ export const SYSTEM_TEMPLATES: SystemTemplate[] = [
   },
 ];
 
-// Suppress unused makeId warning
-void makeId;

@@ -1,17 +1,21 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowUp, ArrowDown, Copy, Trash2, GripVertical } from 'lucide-react';
+import { ArrowUp, ArrowDown, Copy, Trash2, GripVertical, Eye, Bookmark } from 'lucide-react';
 import { useEmailBuilderStore } from '@/lib/email-builder/store';
+import { ConditionBuilderModal } from './modals/ConditionBuilderModal';
+import { SaveBlockModal } from './modals/SaveBlockModal';
+import type { DisplayCondition } from '@/lib/email-builder/types';
 
 interface BlockWrapperProps {
   blockId: string;
   children: ReactNode;
+  storeId?: string;
 }
 
-export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
+export function BlockWrapper({ blockId, children, storeId }: BlockWrapperProps) {
   const selectedBlockId = useEmailBuilderStore((s) => s.selectedBlockId);
   const hoveredBlockId = useEmailBuilderStore((s) => s.hoveredBlockId);
   const selectBlock = useEmailBuilderStore((s) => s.selectBlock);
@@ -19,7 +23,12 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
   const removeBlock = useEmailBuilderStore((s) => s.removeBlock);
   const duplicateBlock = useEmailBuilderStore((s) => s.duplicateBlock);
   const moveBlock = useEmailBuilderStore((s) => s.moveBlock);
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
   const childrenIds = useEmailBuilderStore((s) => s.template.root.data.childrenIds);
+  const block = useEmailBuilderStore((s) => s.template.blocks[blockId]);
+
+  const [conditionModalOpen, setConditionModalOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
 
   const isSelected = selectedBlockId === blockId;
   const isHovered = hoveredBlockId === blockId;
@@ -27,6 +36,10 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
   const blockIndex = childrenIds.indexOf(blockId);
   const canMoveUp = blockIndex > 0;
   const canMoveDown = blockIndex < childrenIds.length - 1;
+
+  const hasConditions =
+    block?.displayConditions &&
+    block.displayConditions.conditions.length > 0;
 
   const {
     attributes,
@@ -42,6 +55,29 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  function handleSaveConditions(conditions: DisplayCondition[], logic: 'and' | 'or') {
+    updateBlock(blockId, {
+      ...block?.data,
+      __displayConditions: conditions.length > 0 ? { conditions, logic } : undefined,
+    });
+
+    // Also update blockBase-level displayConditions
+    const currentBlocks = useEmailBuilderStore.getState().template.blocks;
+    const currentBlock = currentBlocks[blockId];
+    if (currentBlock) {
+      const updatedBlock = {
+        ...currentBlock,
+        displayConditions: conditions.length > 0 ? { conditions, logic } : undefined,
+      };
+      const newBlocks = { ...currentBlocks, [blockId]: updatedBlock };
+      const template = useEmailBuilderStore.getState().template;
+      useEmailBuilderStore.getState().setTemplate({
+        ...template,
+        blocks: newBlocks,
+      });
+    }
+  }
 
   return (
     <div
@@ -61,6 +97,15 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
       onMouseEnter={() => hoverBlock(blockId)}
       onMouseLeave={() => hoverBlock(null)}
     >
+      {hasConditions && (
+        <div className="absolute top-1 left-1 z-10">
+          <div className="flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
+            <Eye size={10} />
+            Condicional
+          </div>
+        </div>
+      )}
+
       {children}
 
       {isSelected && (
@@ -102,6 +147,28 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
+              setConditionModalOpen(true);
+            }}
+            className={`p-1.5 hover:bg-gray-100 ${hasConditions ? 'text-amber-500' : 'text-gray-500'}`}
+            title="Condições de exibição"
+          >
+            <Eye size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSaveModalOpen(true);
+            }}
+            className="p-1.5 hover:bg-gray-100"
+            title="Salvar como reutilizável"
+          >
+            <Bookmark size={14} className="text-gray-500" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
               duplicateBlock(blockId);
             }}
             className="p-1.5 hover:bg-gray-100"
@@ -122,6 +189,21 @@ export function BlockWrapper({ blockId, children }: BlockWrapperProps) {
           </button>
         </div>
       )}
+
+      <ConditionBuilderModal
+        open={conditionModalOpen}
+        onClose={() => setConditionModalOpen(false)}
+        conditions={block?.displayConditions?.conditions ?? []}
+        logic={block?.displayConditions?.logic ?? 'and'}
+        onSave={handleSaveConditions}
+      />
+
+      <SaveBlockModal
+        open={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        block={block ?? null}
+        storeId={storeId}
+      />
     </div>
   );
 }

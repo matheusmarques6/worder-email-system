@@ -1,4 +1,7 @@
 import type { EmailTemplate, BlockBase } from './types';
+import { inlineCss } from './css-inliner';
+import { generatePlainText } from './plain-text';
+import { validateEmailHtml } from './validator';
 
 function escapeHtml(text: string): string {
   return text
@@ -390,6 +393,179 @@ function renderCountdownBlock(data: Record<string, unknown>): string {
   </table>`;
 }
 
+function renderVideoBlock(data: Record<string, unknown>): string {
+  const videoUrl = escapeHtml((data.videoUrl as string) ?? '');
+  const thumbnailUrl = (data.thumbnailUrl as string) ?? '';
+  const alt = escapeHtml((data.alt as string) ?? 'Video');
+  const width = (data.width as number) ?? 600;
+  const padding = (data.padding ?? { top: 10, bottom: 10, left: 20, right: 20 }) as {
+    top: number; bottom: number; left: number; right: number;
+  };
+
+  if (!thumbnailUrl) return '';
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="${renderPadding(padding)} text-align: center;">
+        <a href="${videoUrl || '#'}" target="_blank" style="display: inline-block; text-decoration: none;">
+          <img src="${escapeHtml(thumbnailUrl)}" alt="${alt}" width="${width}" style="display: block; max-width: 100%; height: auto;" />
+        </a>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function renderProductGridBlock(data: Record<string, unknown>): string {
+  const products = (data.products ?? []) as Array<{
+    title: string; imageUrl: string; price: string; compareAtPrice?: string; productUrl: string;
+  }>;
+  const columns = (data.columns as number) ?? 2;
+  const showImage = (data.showImage as boolean) ?? true;
+  const showTitle = (data.showTitle as boolean) ?? true;
+  const showPrice = (data.showPrice as boolean) ?? true;
+  const showButton = (data.showButton as boolean) ?? true;
+  const buttonText = escapeHtml((data.buttonText as string) ?? 'Ver produto');
+  const buttonStyle = (data.buttonStyle ?? {}) as Record<string, unknown>;
+
+  if (products.length === 0) return '';
+
+  const colWidth = Math.floor(600 / columns);
+  const bgColor = (buttonStyle.backgroundColor as string) ?? '#F26B2A';
+  const txtColor = (buttonStyle.textColor as string) ?? '#FFFFFF';
+
+  const cells = products.map((product) => {
+    let cellHtml = '';
+    if (showImage && product.imageUrl) {
+      cellHtml += `<img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.title)}" style="max-width: 100%; height: auto; display: block; margin: 0 auto 8px;" />`;
+    }
+    if (showTitle) {
+      cellHtml += `<h4 style="font-size: 14px; font-weight: bold; margin: 0 0 4px; color: #333; font-family: Arial, sans-serif;">${escapeHtml(product.title)}</h4>`;
+    }
+    if (showPrice) {
+      cellHtml += `<p style="font-size: 14px; margin: 0 0 8px;">`;
+      if (product.compareAtPrice) {
+        cellHtml += `<span style="text-decoration: line-through; color: #999; margin-right: 6px;">${escapeHtml(product.compareAtPrice)}</span>`;
+      }
+      cellHtml += `<span style="color: #333; font-weight: bold;">${escapeHtml(product.price)}</span></p>`;
+    }
+    if (showButton) {
+      cellHtml += `<a href="${escapeHtml(product.productUrl)}" target="_blank" style="display: inline-block; background-color: ${bgColor}; color: ${txtColor}; font-size: 12px; font-weight: bold; text-decoration: none; border-radius: 4px; padding: 8px 12px;">${buttonText}</a>`;
+    }
+    return `<td width="${colWidth}" valign="top" style="padding: 10px; text-align: center;">${cellHtml}</td>`;
+  }).join('\n');
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding: 10px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            ${cells}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function renderAbandonedCartBlock(data: Record<string, unknown>): string {
+  const showImage = (data.showImage as boolean) ?? true;
+  const showTitle = (data.showTitle as boolean) ?? true;
+  const showPrice = (data.showPrice as boolean) ?? true;
+  const showQuantity = (data.showQuantity as boolean) ?? true;
+  const buttonText = escapeHtml((data.buttonText as string) ?? 'Finalizar compra');
+  const buttonHref = (data.buttonHref as string) ?? '{{event.checkout_url}}';
+  const buttonStyle = (data.buttonStyle ?? {}) as Record<string, unknown>;
+  const maxItems = (data.maxItems as number) ?? 10;
+  const bgColor = (buttonStyle.backgroundColor as string) ?? '#F26B2A';
+  const txtColor = (buttonStyle.textColor as string) ?? '#FFFFFF';
+  const borderRadius = (buttonStyle.borderRadius as number) ?? 4;
+
+  let itemRow = '<tr>';
+  if (showImage) {
+    itemRow += `<td style="padding: 8px;" width="80"><img src="{{item.image}}" alt="{{item.title}}" width="60" style="display: block; border-radius: 4px;" /></td>`;
+  }
+  itemRow += `<td style="padding: 8px; font-family: Arial, sans-serif;">`;
+  if (showTitle) {
+    itemRow += `<p style="margin: 0 0 4px; font-size: 14px; font-weight: bold; color: #333;">{{item.title}}</p>`;
+  }
+  if (showPrice) {
+    itemRow += `<p style="margin: 0 0 2px; font-size: 14px; color: #333;">{{item.price}}</p>`;
+  }
+  if (showQuantity) {
+    itemRow += `<p style="margin: 0; font-size: 12px; color: #999;">Qtd: {{item.quantity}}</p>`;
+  }
+  itemRow += `</td></tr>`;
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding: 10px 20px;">
+        {% for item in event.line_items | limit: ${maxItems} %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom: 1px solid #eee;">
+          ${itemRow}
+        </table>
+        {% endfor %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="center" style="padding: 16px 0;">
+              <a href="${buttonHref}" target="_blank" style="display: inline-block; background-color: ${bgColor}; color: ${txtColor}; font-size: 14px; font-weight: bold; font-family: Arial, sans-serif; text-decoration: none; border-radius: ${borderRadius}px; padding: 12px 24px;">${buttonText}</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function renderHeaderBlock(data: Record<string, unknown>): string {
+  const logoUrl = (data.logoUrl as string) ?? '';
+  const logoWidth = (data.logoWidth as number) ?? 150;
+  const logoLinkHref = escapeHtml((data.logoLinkHref as string) ?? '#');
+  const links = (data.links ?? []) as Array<{ text: string; href: string }>;
+  const layout = (data.layout as string) ?? 'logo-left';
+  const backgroundColor = (data.backgroundColor as string) ?? '#FFFFFF';
+  const linkColor = (data.linkColor as string) ?? '#333333';
+  const padding = (data.padding ?? { top: 20, bottom: 20, left: 20, right: 20 }) as {
+    top: number; bottom: number; left: number; right: number;
+  };
+
+  const isCenter = layout === 'logo-center';
+
+  let logoHtml = '';
+  if (logoUrl) {
+    logoHtml = `<a href="${logoLinkHref}" target="_blank"><img src="${escapeHtml(logoUrl)}" alt="Logo" width="${logoWidth}" style="display: block; height: auto;" /></a>`;
+  }
+
+  const navHtml = links.length > 0
+    ? links.map((l) => `<a href="${escapeHtml(l.href || '#')}" target="_blank" style="color: ${linkColor}; text-decoration: none; font-size: 14px; font-family: Arial, sans-serif; padding: 0 8px;">${escapeHtml(l.text)}</a>`).join('')
+    : '';
+
+  if (isCenter) {
+    return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${backgroundColor};">
+      <tr>
+        <td style="${renderPadding(padding)} text-align: center;">
+          ${logoHtml}
+          ${navHtml ? `<div style="margin-top: 12px;">${navHtml}</div>` : ''}
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${backgroundColor};">
+    <tr>
+      <td style="${renderPadding(padding)}">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="text-align: left; vertical-align: middle;">
+              ${logoHtml}
+            </td>
+            ${navHtml ? `<td style="text-align: right; vertical-align: middle;">${navHtml}</td>` : ''}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+}
+
 function renderBlock(block: BlockBase, template?: EmailTemplate): string {
   const renderers: Record<string, (data: Record<string, unknown>, tpl?: EmailTemplate) => string> = {
     text: renderTextBlock,
@@ -400,14 +576,15 @@ function renderBlock(block: BlockBase, template?: EmailTemplate): string {
     heading: renderHeadingBlock,
     columns: renderColumnsBlock,
     html: renderHtmlBlock,
-    header: renderTextBlock,
+    header: renderHeaderBlock,
     footer: renderFooterBlock,
     'social-links': renderSocialLinksBlock,
     product: renderProductBlock,
-    'product-grid': renderProductBlock,
-    'abandoned-cart': renderProductBlock,
+    'product-grid': renderProductGridBlock,
+    'abandoned-cart': renderAbandonedCartBlock,
     coupon: renderCouponBlock,
     countdown: renderCountdownBlock,
+    video: renderVideoBlock,
   };
 
   const renderer = renderers[block.type];
@@ -487,4 +664,25 @@ export function renderEmailToHtml(template: EmailTemplate): string {
   </table>
 </body>
 </html>`;
+}
+
+export function renderEmailComplete(template: EmailTemplate): {
+  html: string;
+  plainText: string;
+  sizeKb: number;
+  errors: string[];
+  warnings: string[];
+} {
+  // 1. Render to HTML
+  let html = renderEmailToHtml(template);
+  // 2. Inline CSS
+  html = inlineCss(html);
+  // 3. Generate plain text
+  const plainText = generatePlainText(html);
+  // 4. Validate
+  const { errors, warnings } = validateEmailHtml(html);
+  // 5. Size
+  const sizeKb = new TextEncoder().encode(html).length / 1024;
+  if (sizeKb > 102) warnings.push(`Email tem ${sizeKb.toFixed(1)}KB. Gmail corta acima de 102KB.`);
+  return { html, plainText, sizeKb, errors, warnings };
 }

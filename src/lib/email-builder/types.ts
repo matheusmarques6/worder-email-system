@@ -2,12 +2,29 @@ export type BlockType =
   | 'text' | 'image' | 'button' | 'divider' | 'spacer'
   | 'heading' | 'columns' | 'html' | 'header' | 'footer'
   | 'social-links' | 'product' | 'product-grid' | 'abandoned-cart'
-  | 'coupon' | 'countdown';
+  | 'coupon' | 'countdown' | 'video';
+
+export interface DisplayCondition {
+  field: string;
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_set';
+  value: string;
+}
+
+export interface ConditionalBlockData {
+  conditions: DisplayCondition[];
+  logic: 'and' | 'or';
+  showBlockIds: string[];
+  hideBlockIds: string[];
+}
 
 export interface BlockBase {
   id: string;
   type: BlockType;
   data: Record<string, unknown>;
+  displayConditions?: {
+    conditions: DisplayCondition[];
+    logic: 'and' | 'or';
+  };
 }
 
 export interface EmailTemplate {
@@ -166,6 +183,54 @@ export interface CountdownBlockData {
   backgroundColor: string;
   numberColor: string;
   labelColor: string;
+  padding: { top: number; bottom: number; left: number; right: number };
+}
+
+export interface VideoBlockData {
+  videoUrl: string;
+  thumbnailUrl: string;
+  alt: string;
+  width: number;
+  padding: { top: number; bottom: number; left: number; right: number };
+}
+
+export interface ProductGridBlockData {
+  products: Array<{
+    shopifyId: string;
+    title: string;
+    imageUrl: string;
+    price: string;
+    compareAtPrice?: string;
+    productUrl: string;
+  }>;
+  columns: 2 | 3;
+  showImage: boolean;
+  showTitle: boolean;
+  showPrice: boolean;
+  showButton: boolean;
+  buttonText: string;
+  buttonStyle: ButtonBlockData['style'];
+}
+
+export interface AbandonedCartBlockData {
+  showImage: boolean;
+  showTitle: boolean;
+  showPrice: boolean;
+  showQuantity: boolean;
+  buttonText: string;
+  buttonHref: string;
+  buttonStyle: { backgroundColor: string; textColor: string; borderRadius: number };
+  maxItems: number;
+}
+
+export interface HeaderBlockData {
+  logoUrl: string;
+  logoWidth: number;
+  logoLinkHref: string;
+  links: Array<{ text: string; href: string }>;
+  layout: 'logo-left' | 'logo-center';
+  backgroundColor: string;
+  linkColor: string;
   padding: { top: number; bottom: number; left: number; right: number };
 }
 

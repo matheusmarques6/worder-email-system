@@ -71,11 +71,12 @@ export function Canvas() {
   }, []);
 
   const canvasWidth = previewMode === 'mobile' ? 375 : template.root.data.width;
+  const isDarkPreview = previewMode === 'dark';
 
   return (
     <div
       className="min-h-full p-8 flex justify-center"
-      style={{ backgroundColor: template.root.data.backdropColor }}
+      style={{ backgroundColor: isDarkPreview ? '#1a1a1a' : template.root.data.backdropColor }}
       onClick={(e) => {
         if (e.target === e.currentTarget) selectBlock(null);
       }}
@@ -86,6 +87,7 @@ export function Canvas() {
           width: canvasWidth,
           backgroundColor: template.root.data.canvasColor,
           minHeight: 200,
+          ...(isDarkPreview ? { filter: 'invert(1) hue-rotate(180deg)' } : {}),
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}

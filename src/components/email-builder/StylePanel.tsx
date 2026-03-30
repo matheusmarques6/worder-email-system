@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useEmailBuilderStore } from '@/lib/email-builder/store';
 import type { BlockType } from '@/lib/email-builder/types';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 function PaddingInputs({
   padding,
@@ -139,12 +142,56 @@ function TextConfig({ blockId, data }: { blockId: string; data: Record<string, u
 
 function ImageConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
   const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
   const padding = (data.padding ?? { top: 10, bottom: 10, left: 20, right: 20 }) as {
     top: number;
     bottom: number;
     left: number;
     right: number;
   };
+
+  async function handleFileUpload(file: File) {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem valido.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(10);
+
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop() ?? 'png';
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+
+      setUploadProgress(30);
+
+      const { error: uploadError } = await supabase.storage
+        .from('email-images')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      setUploadProgress(70);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('email-images')
+        .getPublicUrl(fileName);
+
+      setUploadProgress(100);
+
+      updateBlock(blockId, { url: publicUrlData.publicUrl });
+      toast.success('Imagem enviada com sucesso!');
+    } catch {
+      toast.error('Erro ao enviar imagem. Tente novamente.');
+    } finally {
+      setUploading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -158,6 +205,32 @@ function ImageConfig({ blockId, data }: { blockId: string; data: Record<string, 
           className="w-full mt-1 px-2 py-1 border rounded text-sm"
         />
       </label>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Ou envie um arquivo
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          disabled={uploading}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFileUpload(file);
+          }}
+          className="w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:border-0 file:rounded file:text-sm file:font-medium file:bg-[#F26B2A] file:text-white hover:file:bg-[#d95d22] file:cursor-pointer disabled:opacity-50"
+        />
+        {uploading && (
+          <div className="mt-2">
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-[#F26B2A] h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Enviando... {uploadProgress}%</p>
+          </div>
+        )}
+      </div>
       <label className="block text-sm font-medium text-gray-700">
         Texto alternativo
         <input
@@ -1100,6 +1173,415 @@ function CouponConfig({ blockId, data }: { blockId: string; data: Record<string,
   );
 }
 
+function VideoConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const padding = (data.padding ?? { top: 10, bottom: 10, left: 20, right: 20 }) as {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium text-gray-700">
+        URL do video
+        <input
+          type="url"
+          value={(data.videoUrl as string) ?? ''}
+          onChange={(e) => updateBlock(blockId, { videoUrl: e.target.value })}
+          placeholder="https://youtube.com/watch?v=..."
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        URL da thumbnail
+        <input
+          type="url"
+          value={(data.thumbnailUrl as string) ?? ''}
+          onChange={(e) => updateBlock(blockId, { thumbnailUrl: e.target.value })}
+          placeholder="https://exemplo.com/thumbnail.jpg"
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Texto alternativo
+        <input
+          type="text"
+          value={(data.alt as string) ?? 'Video'}
+          onChange={(e) => updateBlock(blockId, { alt: e.target.value })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Largura (px)
+        <input
+          type="number"
+          value={(data.width as number) ?? 600}
+          onChange={(e) => updateBlock(blockId, { width: Number(e.target.value) })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">Espacamento</p>
+        <PaddingInputs
+          padding={padding}
+          onChange={(p) => updateBlock(blockId, { padding: p })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ProductGridConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const buttonStyle = (data.buttonStyle ?? {}) as Record<string, unknown>;
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium text-gray-700">
+        Colunas
+        <select
+          value={String((data.columns as number) ?? 2)}
+          onChange={(e) => updateBlock(blockId, { columns: Number(e.target.value) })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        >
+          <option value="2">2 colunas</option>
+          <option value="3">3 colunas</option>
+        </select>
+      </label>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">VISIBILIDADE</p>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={(data.showImage as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showImage: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar imagem
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showTitle as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showTitle: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar titulo
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showPrice as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showPrice: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar preco
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showButton as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showButton: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar botao
+        </label>
+      </div>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">BOTAO</p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Texto do botao
+          <input
+            type="text"
+            value={(data.buttonText as string) ?? 'Ver produto'}
+            onChange={(e) => updateBlock(blockId, { buttonText: e.target.value })}
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Cor de fundo do botao
+          <input
+            type="color"
+            value={(buttonStyle.backgroundColor as string) ?? '#F26B2A'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, backgroundColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700">
+          Cor do texto do botao
+          <input
+            type="color"
+            value={(buttonStyle.textColor as string) ?? '#FFFFFF'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, textColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function AbandonedCartConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const buttonStyle = (data.buttonStyle ?? {}) as Record<string, unknown>;
+
+  return (
+    <div className="space-y-4">
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">VISIBILIDADE</p>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={(data.showImage as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showImage: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar imagem
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showTitle as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showTitle: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar titulo
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showPrice as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showPrice: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar preco
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-2">
+          <input
+            type="checkbox"
+            checked={(data.showQuantity as boolean) ?? true}
+            onChange={(e) => updateBlock(blockId, { showQuantity: e.target.checked })}
+            className="rounded"
+          />
+          Mostrar quantidade
+        </label>
+      </div>
+
+      <label className="block text-sm font-medium text-gray-700">
+        Maximo de itens
+        <input
+          type="number"
+          min={1}
+          max={20}
+          value={(data.maxItems as number) ?? 10}
+          onChange={(e) => updateBlock(blockId, { maxItems: Number(e.target.value) })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">BOTAO</p>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Texto do botao
+          <input
+            type="text"
+            value={(data.buttonText as string) ?? 'Finalizar compra'}
+            onChange={(e) => updateBlock(blockId, { buttonText: e.target.value })}
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          URL do botao
+          <input
+            type="text"
+            value={(data.buttonHref as string) ?? '{{event.checkout_url}}'}
+            onChange={(e) => updateBlock(blockId, { buttonHref: e.target.value })}
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Cor de fundo do botao
+          <input
+            type="color"
+            value={(buttonStyle.backgroundColor as string) ?? '#F26B2A'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, backgroundColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700">
+          Cor do texto do botao
+          <input
+            type="color"
+            value={(buttonStyle.textColor as string) ?? '#FFFFFF'}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, textColor: e.target.value } })
+            }
+            className="w-full h-8 mt-1 cursor-pointer"
+          />
+        </label>
+        <label className="block text-sm font-medium text-gray-700 mt-2">
+          Borda arredondada do botao
+          <input
+            type="number"
+            value={(buttonStyle.borderRadius as number) ?? 4}
+            onChange={(e) =>
+              updateBlock(blockId, { buttonStyle: { ...buttonStyle, borderRadius: Number(e.target.value) } })
+            }
+            className="w-full mt-1 px-2 py-1 border rounded text-sm"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function HeaderConfig({ blockId, data }: { blockId: string; data: Record<string, unknown> }) {
+  const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const links = (data.links ?? []) as Array<{ text: string; href: string }>;
+  const padding = (data.padding ?? { top: 20, bottom: 20, left: 20, right: 20 }) as {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm font-medium text-gray-700">
+        URL do logo
+        <input
+          type="url"
+          value={(data.logoUrl as string) ?? ''}
+          onChange={(e) => updateBlock(blockId, { logoUrl: e.target.value })}
+          placeholder="https://exemplo.com/logo.png"
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Largura do logo (px)
+        <input
+          type="number"
+          value={(data.logoWidth as number) ?? 150}
+          onChange={(e) => updateBlock(blockId, { logoWidth: Number(e.target.value) })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Link do logo
+        <input
+          type="url"
+          value={(data.logoLinkHref as string) ?? '#'}
+          onChange={(e) => updateBlock(blockId, { logoLinkHref: e.target.value })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Layout
+        <select
+          value={(data.layout as string) ?? 'logo-left'}
+          onChange={(e) => updateBlock(blockId, { layout: e.target.value })}
+          className="w-full mt-1 px-2 py-1 border rounded text-sm"
+        >
+          <option value="logo-left">Logo a esquerda</option>
+          <option value="logo-center">Logo centralizado</option>
+        </select>
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Cor de fundo
+        <input
+          type="color"
+          value={(data.backgroundColor as string) ?? '#FFFFFF'}
+          onChange={(e) => updateBlock(blockId, { backgroundColor: e.target.value })}
+          className="w-full h-8 mt-1 cursor-pointer"
+        />
+      </label>
+      <label className="block text-sm font-medium text-gray-700">
+        Cor dos links
+        <input
+          type="color"
+          value={(data.linkColor as string) ?? '#333333'}
+          onChange={(e) => updateBlock(blockId, { linkColor: e.target.value })}
+          className="w-full h-8 mt-1 cursor-pointer"
+        />
+      </label>
+
+      <div className="border-t pt-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">LINKS DE NAVEGACAO</p>
+        {links.map((link, index) => (
+          <div key={index} className="border rounded p-3 space-y-2 mb-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">Link {index + 1}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const newLinks = links.filter((_, i) => i !== index);
+                  updateBlock(blockId, { links: newLinks });
+                }}
+                className="text-xs text-red-500 hover:underline"
+              >
+                Remover
+              </button>
+            </div>
+            <label className="block text-xs text-gray-500">
+              Texto
+              <input
+                type="text"
+                value={link.text}
+                onChange={(e) => {
+                  const newLinks = [...links];
+                  newLinks[index] = { ...link, text: e.target.value };
+                  updateBlock(blockId, { links: newLinks });
+                }}
+                className="w-full mt-1 px-2 py-1 border rounded text-sm"
+              />
+            </label>
+            <label className="block text-xs text-gray-500">
+              URL
+              <input
+                type="url"
+                value={link.href}
+                onChange={(e) => {
+                  const newLinks = [...links];
+                  newLinks[index] = { ...link, href: e.target.value };
+                  updateBlock(blockId, { links: newLinks });
+                }}
+                className="w-full mt-1 px-2 py-1 border rounded text-sm"
+              />
+            </label>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => {
+            updateBlock(blockId, { links: [...links, { text: 'Novo link', href: '#' }] });
+          }}
+          className="w-full py-2 text-sm border border-dashed border-gray-300 rounded hover:border-[#F26B2A] hover:text-[#F26B2A] transition-colors"
+        >
+          + Adicionar link
+        </button>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">Espacamento</p>
+        <PaddingInputs
+          padding={padding}
+          onChange={(p) => updateBlock(blockId, { padding: p })}
+        />
+      </div>
+    </div>
+  );
+}
+
 const configComponents: Partial<
   Record<BlockType, React.ComponentType<{ blockId: string; data: Record<string, unknown> }>>
 > = {
@@ -1111,14 +1593,15 @@ const configComponents: Partial<
   spacer: SpacerConfig,
   columns: ColumnsConfig,
   html: HtmlConfig,
-  header: TextConfig,
+  header: HeaderConfig,
   footer: FooterConfig,
   'social-links': SocialLinksConfig,
   product: ProductConfig,
-  'product-grid': ProductConfig,
-  'abandoned-cart': ProductConfig,
+  'product-grid': ProductGridConfig,
+  'abandoned-cart': AbandonedCartConfig,
   coupon: CouponConfig,
   countdown: CountdownConfig,
+  video: VideoConfig,
 };
 
 const blockLabels: Partial<Record<BlockType, string>> = {
@@ -1138,6 +1621,7 @@ const blockLabels: Partial<Record<BlockType, string>> = {
   'abandoned-cart': 'Carrinho Abandonado',
   coupon: 'Cupom',
   countdown: 'Contagem Regressiva',
+  video: 'Video',
 };
 
 export function StylePanel() {

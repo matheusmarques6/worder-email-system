@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { renderEmailToHtml } from '@/lib/email-builder/renderer';
+import { renderEmailComplete } from '@/lib/email-builder/renderer';
 import type { EmailTemplate } from '@/lib/email-builder/types';
 
 export async function POST(request: Request) {
@@ -14,10 +14,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const html = renderEmailToHtml(template);
-    const sizeKb = Math.round((new TextEncoder().encode(html).length / 1024) * 100) / 100;
+    const { html, plainText, sizeKb, errors, warnings } = renderEmailComplete(template);
 
-    return NextResponse.json({ html, sizeKb });
+    return NextResponse.json({ html, plainText, sizeKb, errors, warnings });
   } catch {
     return NextResponse.json(
       { error: 'Erro ao renderizar template' },

@@ -15,6 +15,10 @@ import { CouponBlock } from './CouponBlock';
 import { FooterBlock } from './FooterBlock';
 import { SocialLinksBlock } from './SocialLinksBlock';
 import { CountdownBlock } from './CountdownBlock';
+import { VideoBlock } from './VideoBlock';
+import { ProductGridBlock } from './ProductGridBlock';
+import { AbandonedCartBlock } from './AbandonedCartBlock';
+import { HeaderBlock } from './HeaderBlock';
 
 const blockComponents: Record<string, React.ComponentType<{ data: Record<string, unknown>; blockId?: string }>> = {
   image: ImageBlock,
@@ -24,17 +28,19 @@ const blockComponents: Record<string, React.ComponentType<{ data: Record<string,
   heading: HeadingBlock,
   columns: ColumnsBlock,
   html: HtmlBlock,
+  header: HeaderBlock,
   footer: FooterBlock,
   'social-links': SocialLinksBlock,
   product: ProductBlock,
-  'product-grid': ProductBlock,
-  'abandoned-cart': ProductBlock,
+  'product-grid': ProductGridBlock,
+  'abandoned-cart': AbandonedCartBlock,
   coupon: CouponBlock,
   countdown: CountdownBlock,
+  video: VideoBlock,
 };
 
 // Block types that support isSelected prop
-const textLikeTypes = new Set(['text', 'header']);
+const textLikeTypes = new Set(['text']);
 
 export function BlockRenderer({ block }: { block: BlockBase }) {
   const selectedBlockId = useEmailBuilderStore((s) => s.selectedBlockId);

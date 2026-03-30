@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Tag } from 'lucide-react';
 import { useEmailBuilderStore } from '@/lib/email-builder/store';
+import { MergeTagPickerModal } from '../modals/MergeTagPickerModal';
 
 export function TextBlock({
   data,
@@ -24,6 +26,7 @@ export function TextBlock({
     right: number;
   };
   const updateBlock = useEmailBuilderStore((s) => s.updateBlock);
+  const [mergeTagOpen, setMergeTagOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -64,10 +67,32 @@ export function TextBlock({
     backgroundColor: (style.backgroundColor as string) ?? undefined,
   };
 
+  function handleMergeTagSelect(tagValue: string) {
+    if (editor) {
+      editor.commands.insertContent(tagValue);
+    }
+  }
+
   if (isSelected && editor) {
     return (
       <div style={containerStyle} className="tiptap-editor">
+        <div className="flex items-center gap-1 mb-1">
+          <button
+            type="button"
+            onClick={() => setMergeTagOpen(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 hover:border-[#F26B2A] hover:text-[#F26B2A] transition-colors bg-white text-gray-600"
+            title="Inserir merge tag"
+          >
+            <Tag size={12} />
+            Merge Tag
+          </button>
+        </div>
         <EditorContent editor={editor} />
+        <MergeTagPickerModal
+          open={mergeTagOpen}
+          onClose={() => setMergeTagOpen(false)}
+          onSelect={handleMergeTagSelect}
+        />
       </div>
     );
   }

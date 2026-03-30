@@ -17,6 +17,10 @@ import type {
   SocialLinksBlockData,
   HtmlBlockData,
   CountdownBlockData,
+  VideoBlockData,
+  ProductGridBlockData,
+  AbandonedCartBlockData,
+  HeaderBlockData,
 } from './types';
 
 type BlockDataMap = {
@@ -28,14 +32,15 @@ type BlockDataMap = {
   heading: HeadingBlockData;
   columns: ColumnsBlockData;
   html: HtmlBlockData;
-  header: TextBlockData;
+  header: HeaderBlockData;
   footer: FooterBlockData;
   'social-links': SocialLinksBlockData;
   product: ProductBlockData;
-  'product-grid': ProductBlockData;
-  'abandoned-cart': ProductBlockData;
+  'product-grid': ProductGridBlockData;
+  'abandoned-cart': AbandonedCartBlockData;
   coupon: CouponBlockData;
   countdown: CountdownBlockData;
+  video: VideoBlockData;
 };
 
 export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
@@ -108,16 +113,14 @@ export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
       html: '<!-- Seu HTML aqui -->',
     },
     header: {
-      html: '<h1 style="text-align:center;">Sua Empresa</h1>',
-      style: {
-        color: '#333333',
-        fontSize: 24,
-        fontFamily: 'Arial, sans-serif',
-        textAlign: 'center',
-        lineHeight: 1.4,
-        padding: { top: 20, bottom: 20, left: 20, right: 20 },
-        backgroundColor: '#F8F8F8',
-      },
+      logoUrl: '',
+      logoWidth: 150,
+      logoLinkHref: '#',
+      links: [],
+      layout: 'logo-left',
+      backgroundColor: '#FFFFFF',
+      linkColor: '#333333',
+      padding: { top: 20, bottom: 20, left: 20, right: 20 },
     },
     footer: {
       companyName: 'Sua Empresa',
@@ -154,6 +157,8 @@ export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
       },
     },
     'product-grid': {
+      products: [],
+      columns: 2,
       showImage: true,
       showTitle: true,
       showPrice: true,
@@ -174,18 +179,11 @@ export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
       showImage: true,
       showTitle: true,
       showPrice: true,
-      showButton: true,
+      showQuantity: true,
       buttonText: 'Finalizar compra',
-      buttonStyle: {
-        backgroundColor: '#F26B2A',
-        textColor: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: 'bold',
-        borderRadius: 4,
-        padding: { top: 10, bottom: 10, left: 20, right: 20 },
-        width: 'auto',
-        alignment: 'center',
-      },
+      buttonHref: '{{event.checkout_url}}',
+      buttonStyle: { backgroundColor: '#F26B2A', textColor: '#FFFFFF', borderRadius: 4 },
+      maxItems: 10,
     },
     coupon: {
       type: 'static',
@@ -210,6 +208,13 @@ export function getDefaultBlockData(type: BlockType): BlockDataMap[BlockType] {
       numberColor: '#FFFFFF',
       labelColor: '#cccccc',
       padding: { top: 20, bottom: 20, left: 20, right: 20 },
+    },
+    video: {
+      videoUrl: '',
+      thumbnailUrl: '',
+      alt: 'Video',
+      width: 600,
+      padding: { top: 10, bottom: 10, left: 20, right: 20 },
     },
   };
 
@@ -248,7 +253,7 @@ interface EditorActions {
   removeBlockFromColumn: (columnBlockId: string, columnIndex: number, childBlockId: string) => void;
   undo: () => void;
   redo: () => void;
-  setPreviewMode: (mode: 'edit' | 'desktop' | 'mobile') => void;
+  setPreviewMode: (mode: 'edit' | 'desktop' | 'mobile' | 'dark') => void;
   setDirty: (dirty: boolean) => void;
   setDragging: (dragging: boolean) => void;
 }
@@ -258,7 +263,7 @@ interface EditorStore {
   selectedBlockId: string | null;
   hoveredBlockId: string | null;
   isDragging: boolean;
-  previewMode: 'edit' | 'desktop' | 'mobile';
+  previewMode: 'edit' | 'desktop' | 'mobile' | 'dark';
   history: EmailTemplate[];
   historyIndex: number;
   isDirty: boolean;

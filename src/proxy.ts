@@ -10,6 +10,7 @@ const publicPaths = [
   "/api/track",
   "/api/unsubscribe",
   "/api/forms/submit",
+  "/api/auth/shopify",
 ]
 
 function isPublicPath(pathname: string) {

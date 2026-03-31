@@ -36,7 +36,7 @@ interface TemplateOption {
 const templates: TemplateOption[] = [
   {
     id: "welcome-series",
-    name: "Welcome Series",
+    name: "Série de Boas-vindas",
     description: "Série de boas-vindas para novos inscritos",
     icon: Mail,
   },
@@ -60,25 +60,25 @@ const templates: TemplateOption[] = [
   },
   {
     id: "win-back",
-    name: "Win-back",
+    name: "Reengajamento",
     description: "Reengaje clientes inativos",
     icon: UserMinus,
   },
   {
     id: "review-request",
-    name: "Review Request",
+    name: "Solicitação de Avaliação",
     description: "Solicite avaliações após entrega",
     icon: Star,
   },
   {
     id: "vip-upgrade",
-    name: "VIP Upgrade",
+    name: "Upgrade VIP",
     description: "Boas-vindas ao programa de fidelidade",
     icon: Crown,
   },
   {
     id: "browse-abandonment",
-    name: "Browse Abandonment",
+    name: "Navegação Abandonada",
     description: "Recupere visitantes que viram produtos",
     icon: Eye,
   },

@@ -184,7 +184,7 @@ export function CampaignReport({ campaign }: CampaignReportProps) {
           icon={MousePointerClick}
         />
         <MetricCard
-          label="Bounced"
+          label="Rejeitados"
           value={stats.bounced.toLocaleString("pt-BR")}
           subValue={`${bounceRate.toFixed(1)}%`}
           icon={AlertTriangle}

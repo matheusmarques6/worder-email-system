@@ -91,12 +91,12 @@ export function FlowConfigPanel({ node, onUpdate, onClose }: FlowConfigPanelProp
                     <SelectValue placeholder="Selecionar evento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="placed_order">Placed Order</SelectItem>
-                    <SelectItem value="started_checkout">Started Checkout</SelectItem>
-                    <SelectItem value="viewed_product">Viewed Product</SelectItem>
-                    <SelectItem value="added_to_cart">Added to Cart</SelectItem>
-                    <SelectItem value="order_fulfilled">Order Fulfilled</SelectItem>
-                    <SelectItem value="customer_created">Customer Created</SelectItem>
+                    <SelectItem value="placed_order">Pedido Realizado</SelectItem>
+                    <SelectItem value="started_checkout">Checkout Iniciado</SelectItem>
+                    <SelectItem value="viewed_product">Produto Visualizado</SelectItem>
+                    <SelectItem value="added_to_cart">Adicionou ao Carrinho</SelectItem>
+                    <SelectItem value="order_fulfilled">Pedido Enviado</SelectItem>
+                    <SelectItem value="customer_created">Cliente Criado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

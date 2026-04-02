@@ -11,7 +11,7 @@ import { ArrowLeft, Zap, Mail, ShoppingCart, Package, CreditCard, UserPlus } fro
 const flowTemplates = [
   {
     id: "welcome",
-    name: "Welcome Series",
+    name: "Série de Boas-vindas",
     description: "Série de boas-vindas para novos inscritos",
     icon: UserPlus,
     trigger: "Lista",

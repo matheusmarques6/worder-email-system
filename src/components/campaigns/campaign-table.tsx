@@ -249,7 +249,7 @@ export default function CampaignTable({
                   Clicados %
                 </th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">
-                  Revenue R$
+                  Receita R$
                 </th>
                 <th className="w-12 px-4 py-3" />
               </tr>

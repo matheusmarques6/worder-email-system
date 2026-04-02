@@ -10,9 +10,9 @@ interface DragItem {
 }
 
 const triggerItems: DragItem[] = [
-  { type: "trigger", label: "Métrica", icon: BarChart3, color: "bg-purple-100 text-purple-700" },
-  { type: "trigger", label: "Lista", icon: Users, color: "bg-purple-100 text-purple-700" },
-  { type: "trigger", label: "Segmento", icon: ListFilter, color: "bg-purple-100 text-purple-700" },
+  { type: "trigger", label: "Métrica", icon: BarChart3, color: "bg-orange-100 text-orange-700" },
+  { type: "trigger", label: "Lista", icon: Users, color: "bg-orange-100 text-orange-700" },
+  { type: "trigger", label: "Segmento", icon: ListFilter, color: "bg-orange-100 text-orange-700" },
 ];
 
 const actionItems: DragItem[] = [

@@ -243,7 +243,7 @@ export function ContactsTable({
               <TableHead>Telefone</TableHead>
               <TableHead>Total Gasto</TableHead>
               <TableHead>Pedidos</TableHead>
-              <TableHead>Consent</TableHead>
+              <TableHead>Consentimento</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Criado em</TableHead>
             </TableRow>

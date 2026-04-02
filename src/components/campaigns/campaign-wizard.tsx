@@ -416,7 +416,7 @@ function StepInformacoes({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Subject A
+                  Assunto A
                 </label>
                 <input
                   type="text"
@@ -428,7 +428,7 @@ function StepInformacoes({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Subject B
+                  Assunto B
                 </label>
                 <input
                   type="text"
@@ -459,7 +459,7 @@ function StepInformacoes({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Enviar winner após X horas
+                Enviar vencedor após X horas
               </label>
               <input
                 type="number"
@@ -615,7 +615,7 @@ function StepDestinatarios({
             className="w-4 h-4 mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
           />
           <span className="text-sm text-gray-700">
-            Smart Sending — Não enviar para quem recebeu email nas últimas 16
+            Envio Inteligente — Não enviar para quem recebeu email nas últimas 16
             horas
           </span>
         </label>
@@ -671,7 +671,7 @@ function StepConteudo({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Subject A <span className="text-red-500">*</span>
+              Assunto A <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -683,7 +683,7 @@ function StepConteudo({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Subject B <span className="text-red-500">*</span>
+              Assunto B <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -712,7 +712,7 @@ function StepConteudo({
       {/* Preview text */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-          Preview text
+          Texto de prévia
         </label>
         <input
           type="text"
@@ -722,7 +722,7 @@ function StepConteudo({
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
         />
         <p className="mt-1 text-xs text-gray-400">
-          Texto que aparece após o subject no inbox
+          Texto que aparece após o assunto na caixa de entrada
         </p>
       </div>
 
@@ -794,7 +794,7 @@ function StepRevisar({
     { label: "Template", value: formData.templateId || "Não selecionado" },
     { label: "Teste A/B", value: formData.abTest ? "Sim" : "Não" },
     {
-      label: "Smart Sending",
+      label: "Envio Inteligente",
       value: formData.smartSending ? "Ativado" : "Desativado",
     },
   ]
